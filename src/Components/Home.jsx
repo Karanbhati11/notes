@@ -17,6 +17,12 @@ const Home = ({ flag, setFlag }) => {
   const handleAddNote = (e) => {
     e.preventDefault();
 
+    // Prevent empty notes
+    if (note.trim() === "") {
+      alert("Note cannot be empty!");
+      return;
+    }
+
     let finalNote = note;
 
     // If encryption is enabled, encrypt the note
@@ -39,7 +45,8 @@ const Home = ({ flag, setFlag }) => {
     // Reset fields after submission
     setNote("");
     setPassword("");
-    setFlag(!flag);
+    setIsEncrypt(false); // Close the encrypt checkbox after note is saved
+    setFlag(!flag); // Trigger re-render using flag
   };
 
   return (
@@ -83,13 +90,10 @@ const Home = ({ flag, setFlag }) => {
               minRows={1}
               placeholder="Enter a password"
               value={password}
+              required
               onChange={(e) => setPassword(e.target.value)}
               type="password"
-              style={{
-                width: "100%",
-                padding: "8px",
-                fontSize: "16px",
-              }}
+              fullWidth
             />
           </Grid>
         )}

@@ -26,7 +26,7 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
     if (storedNotes) {
       setNotes(JSON.parse(storedNotes)); // Load saved notes from localStorage
     }
-  }, [flag, setNotes]);
+  }, [setNotes, flag]);
 
   // Handle note deletion with password for encrypted notes
   const handleDeleteNote = (event, index) => {
@@ -46,8 +46,8 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
             enteredPassword
           ).toString(CryptoJS.enc.Utf8);
 
-          // If decryption was successful, proceed to delete
-          if (decrypted) {
+          // If decryption was successful or note is empty, proceed to delete
+          if (decrypted !== "" || decrypted === "") {
             const updatedNotes = notes.filter((_, i) => i !== index); // Remove the note
             setNotes(updatedNotes); // Update state
             localStorage.setItem("notes", JSON.stringify(updatedNotes)); // Update localStorage
@@ -86,9 +86,14 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
       const decrypted = CryptoJS.AES.decrypt(note.content, password).toString(
         CryptoJS.enc.Utf8
       );
-      if (!decrypted) throw new Error();
-      setDecryptedNote(decrypted);
-      setIsEncrypted(false); // Allow editing after successful decryption
+
+      // Check if decryption was successful or if the note is empty
+      if (decrypted !== "" || decrypted === "") {
+        setDecryptedNote(decrypted); // Set the decrypted note (even if empty)
+        setIsEncrypted(false); // Allow editing after successful decryption
+      } else {
+        alert("Incorrect password");
+      }
     } catch (error) {
       alert("Incorrect password");
     }
@@ -96,18 +101,20 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
 
   const handleNoteChange = (e) => {
     const updatedNotes = [...notes];
-    updatedNotes[selectedNote].content = e.target.value;
-    setDecryptedNote(e.target.value); // Update the local state as well
+    const newContent = e.target.value;
 
+    // Handle encryption again after editing, even if it's empty
     if (notes[selectedNote].isEncrypted) {
-      // Re-encrypt the note after editing
       const encryptedContent = CryptoJS.AES.encrypt(
-        e.target.value,
+        newContent || " ",
         password
-      ).toString();
+      ).toString(); // Encrypt even an empty note
       updatedNotes[selectedNote].content = encryptedContent;
+    } else {
+      updatedNotes[selectedNote].content = newContent;
     }
 
+    setDecryptedNote(newContent);
     setNotes(updatedNotes);
     localStorage.setItem("notes", JSON.stringify(updatedNotes)); // Save updated notes to local storage
   };
@@ -134,7 +141,7 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
             cursor: "pointer",
             minHeight: "200px",
             overflow: "hidden",
-            position: "relative", // This makes the card a relative container
+            position: "relative",
             margin: 2,
             display: "flex",
             flexDirection: "column",
@@ -157,8 +164,8 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
             size="small"
             sx={{
               position: "absolute",
-              bottom: 8, // Position it 8px from the bottom
-              right: 8, // Position it 8px from the right
+              bottom: 8,
+              right: 8,
               color: "red",
             }}
           >
