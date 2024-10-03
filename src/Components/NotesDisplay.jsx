@@ -6,39 +6,42 @@ import {
   Box,
   TextareaAutosize,
   TextField,
-  Button,
   IconButton,
   Typography,
+  Button,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'; // Copy icon from MUI
 import CryptoJS from "crypto-js"; // Import CryptoJS for encryption
 
 const NotesDisplay = ({ notes, setNotes, flag }) => {
   const [selectedNote, setSelectedNote] = useState(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [decryptedNote, setDecryptedNote] = useState("");
   const [isEncrypted, setIsEncrypted] = useState(false);
 
-  // Load notes from localStorage when the component mounts
+  // Sync state with localStorage when the component mounts or flag changes
   useEffect(() => {
     const storedNotes = localStorage.getItem("notes");
     if (storedNotes) {
       setNotes(JSON.parse(storedNotes)); // Load saved notes from localStorage
+    } else {
+      setNotes([]); // Clear notes if none found in localStorage
     }
   }, [setNotes, flag]);
 
-  // Handle note deletion with password for encrypted notes
+  // Save notes to localStorage whenever notes change
+  useEffect(() => {
+    localStorage.setItem("notes", JSON.stringify(notes));
+  }, [notes]);
+
   const handleDeleteNote = (event, index) => {
     event.stopPropagation(); // Prevent the card's onClick from being triggered
 
     const note = notes[index];
 
-    // Check if the note is encrypted
     if (note.isEncrypted) {
-      // Ask for password if the note is encrypted
       const enteredPassword = prompt("Enter the password to delete this note:");
-
       if (enteredPassword) {
         try {
           const decrypted = CryptoJS.AES.decrypt(
@@ -46,11 +49,9 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
             enteredPassword
           ).toString(CryptoJS.enc.Utf8);
 
-          // If decryption was successful or note is empty, proceed to delete
           if (decrypted !== "" || decrypted === "") {
             const updatedNotes = notes.filter((_, i) => i !== index); // Remove the note
             setNotes(updatedNotes); // Update state
-            localStorage.setItem("notes", JSON.stringify(updatedNotes)); // Update localStorage
           } else {
             alert("Incorrect password. Unable to delete the note.");
           }
@@ -59,17 +60,14 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
         }
       }
     } else {
-      // If the note is not encrypted, delete it directly
       const updatedNotes = notes.filter((_, i) => i !== index); // Remove the note
       setNotes(updatedNotes); // Update state
-      localStorage.setItem("notes", JSON.stringify(updatedNotes)); // Update localStorage
     }
   };
 
   const handleCardClick = (index) => {
     const note = notes[index];
     setSelectedNote(index);
-    setIsDialogOpen(true);
 
     if (note.isEncrypted) {
       setIsEncrypted(true);
@@ -87,7 +85,6 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
         CryptoJS.enc.Utf8
       );
 
-      // Check if decryption was successful or if the note is empty
       if (decrypted !== "" || decrypted === "") {
         setDecryptedNote(decrypted); // Set the decrypted note (even if empty)
         setIsEncrypted(false); // Allow editing after successful decryption
@@ -103,7 +100,6 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
     const updatedNotes = [...notes];
     const newContent = e.target.value;
 
-    // Handle encryption again after editing, even if it's empty
     if (notes[selectedNote].isEncrypted) {
       const encryptedContent = CryptoJS.AES.encrypt(
         newContent || " ",
@@ -116,13 +112,24 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
 
     setDecryptedNote(newContent);
     setNotes(updatedNotes);
-    localStorage.setItem("notes", JSON.stringify(updatedNotes)); // Save updated notes to local storage
   };
 
   const handleCloseDialog = () => {
-    setIsDialogOpen(false);
+    // Save updated note when closing the dialog
+    const updatedNotes = [...notes];
+    if (selectedNote !== null) {
+      updatedNotes[selectedNote].content = decryptedNote; // Update the content
+      setNotes(updatedNotes);
+    }
+
+    setSelectedNote(null); // Clear selected note
     setPassword("");
     setIsEncrypted(false);
+  };
+
+  // Function to handle note copy
+  const handleCopyNote = () => {
+    navigator.clipboard.writeText(decryptedNote);
   };
 
   return (
@@ -130,8 +137,9 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
       sx={{
         mt: 4,
         display: "grid",
-        gridTemplateColumns: "repeat(5, 1fr)",
-        gap: 2,
+        gridTemplateColumns: "repeat(4, 1fr)",
+        gap: 3, // Space between cards
+        marginBottom: "30px", // Space below the notes
       }}
     >
       {notes.map((note, index) => (
@@ -139,22 +147,43 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
           key={index}
           sx={{
             cursor: "pointer",
-            minHeight: "200px",
-            overflow: "hidden",
+            backgroundColor: "white", // White background
+            minHeight: "150px",
             position: "relative",
-            margin: 2,
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+            borderRadius: "8px",
+            overflow: "hidden",
             display: "flex",
-            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px", // Add some padding for better appearance
           }}
           onClick={() => handleCardClick(index)}
         >
-          <CardContent>
-            {/* Show only 100 characters of the note */}
-            <Typography variant="body2">
-              {note.isEncrypted
-                ? "Encrypted Note"
-                : String(note.content).slice(0, 100) +
-                  (note.content.length > 100 ? "..." : "")}
+          {/* Faded title overlay */}
+          <Box
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              backgroundColor: "rgba(0, 0, 0, 0.1)", // Light overlay
+            }}
+          />
+          <CardContent
+            sx={{
+              position: "relative",
+              zIndex: 1, // Ensure title stays above overlay
+              textAlign: "center",
+            }}
+          >
+            <Typography
+              variant="h5"
+              component="div"
+              sx={{ fontWeight: "bold", opacity: 0.7 }}
+            >
+              {note.title || "No Title"}
             </Typography>
           </CardContent>
 
@@ -175,18 +204,47 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
       ))}
 
       {selectedNote !== null && (
-        <Dialog open={isDialogOpen} onClose={handleCloseDialog} fullWidth>
+        <Dialog
+          open={selectedNote !== null}
+          onClose={handleCloseDialog}
+          fullWidth
+        >
           <Box
             sx={{
               padding: 2,
-              background: `repeating-linear-gradient(white, white 28px, #e0e0e0 30px)`,
               minHeight: "300px",
               overflowY: "auto",
               position: "relative",
               borderRadius: 2,
               boxShadow: 2,
+              background: `repeating-linear-gradient(
+                white, 
+                white 15px,  /* Adjust the spacing to make lines frequent */
+                #bfbfbf 16px /* Darker gray for clearer contrast */
+              )`, 
             }}
           >
+            <Typography variant="h6" gutterBottom sx={{ textAlign: "center" }}>
+              {notes[selectedNote].title || "No Title"}
+            </Typography>
+
+            {/* Copy Note Button positioned on the top-right */}
+            <IconButton
+              onClick={handleCopyNote}
+              sx={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                color: "#4a4a4a", // Gray color similar to ChatGPT's button
+                backgroundColor: "#f5f5f5", // Light background for the button
+                '&:hover': {
+                  backgroundColor: "#e0e0e0", // Hover effect for the button
+                },
+              }}
+            >
+              <ContentCopyIcon />
+            </IconButton>
+
             {isEncrypted ? (
               <div>
                 <TextField
