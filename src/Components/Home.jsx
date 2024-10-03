@@ -54,7 +54,7 @@ const Home = ({ flag, setFlag, setNotes }) => {
   const handleResetApp = () => {
     // Clear all notes from localStorage and state
     localStorage.removeItem("notes");
-    setNotes([]); // Clear the notes state
+    setNote([]); // Clear the notes state
     setFlag(!flag); // Trigger re-render
     alert("All notes have been deleted!");
   };

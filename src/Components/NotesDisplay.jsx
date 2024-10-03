@@ -19,7 +19,6 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
   const [password, setPassword] = useState("");
   const [decryptedNote, setDecryptedNote] = useState("");
   const [isEncrypted, setIsEncrypted] = useState(false);
-  const [copyText, setCopyText] = useState("Copy Note"); // State for copy button text
 
   // Sync state with localStorage when the component mounts or flag changes
   useEffect(() => {
@@ -126,16 +125,11 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
     setSelectedNote(null); // Clear selected note
     setPassword("");
     setIsEncrypted(false);
-    setCopyText("Copy Note"); // Reset copy button text
   };
 
   // Function to handle note copy
   const handleCopyNote = () => {
-    navigator.clipboard.writeText(decryptedNote); // Copy note content
-    setCopyText("Copied!"); // Change button text to "Copied!"
-    setTimeout(() => {
-      setCopyText("Copy Note"); // Reset button text after 1.5 seconds
-    }, 1500);
+    navigator.clipboard.writeText(decryptedNote);
   };
 
   return (
