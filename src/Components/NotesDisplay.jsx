@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Card,
   CardContent,
@@ -9,34 +9,21 @@ import {
   IconButton,
   Typography,
   Button,
+  Alert,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
-import ContentCopyIcon from '@mui/icons-material/ContentCopy'; // Copy icon from MUI
-import CryptoJS from "crypto-js"; // Import CryptoJS for encryption
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import CryptoJS from "crypto-js";
 
-const NotesDisplay = ({ notes, setNotes, flag }) => {
+const NotesDisplay = ({ notes, setNotes, flag, isDarkMode }) => {
   const [selectedNote, setSelectedNote] = useState(null);
   const [password, setPassword] = useState("");
   const [decryptedNote, setDecryptedNote] = useState("");
   const [isEncrypted, setIsEncrypted] = useState(false);
-
-  // Sync state with localStorage when the component mounts or flag changes
-  useEffect(() => {
-    const storedNotes = localStorage.getItem("notes");
-    if (storedNotes) {
-      setNotes(JSON.parse(storedNotes)); // Load saved notes from localStorage
-    } else {
-      setNotes([]); // Clear notes if none found in localStorage
-    }
-  }, [setNotes, flag]);
-
-  // Save notes to localStorage whenever notes change
-  useEffect(() => {
-    localStorage.setItem("notes", JSON.stringify(notes));
-  }, [notes]);
+  const [error, setError] = useState(""); // Error message state
 
   const handleDeleteNote = (event, index) => {
-    event.stopPropagation(); // Prevent the card's onClick from being triggered
+    event.stopPropagation();
 
     const note = notes[index];
 
@@ -73,7 +60,7 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
       setIsEncrypted(true);
       setDecryptedNote(""); // Reset decrypted note when opening a new one
     } else {
-      setDecryptedNote(String(note.content)); // If not encrypted, just show the note as a string
+      setDecryptedNote(note.content); // Set decrypted note if not encrypted
     }
   };
 
@@ -85,46 +72,41 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
         CryptoJS.enc.Utf8
       );
 
-      if (decrypted !== "" || decrypted === "") {
-        setDecryptedNote(decrypted); // Set the decrypted note (even if empty)
+      if (decrypted !== "") {
+        setDecryptedNote(decrypted); // Set the decrypted note
+        setError(""); // Clear any previous error
         setIsEncrypted(false); // Allow editing after successful decryption
       } else {
-        alert("Incorrect password");
+        setError("Incorrect password. Please try again.");
       }
     } catch (error) {
-      alert("Incorrect password");
+      setError("Incorrect password. Please try again.");
     }
   };
 
   const handleNoteChange = (e) => {
-    const updatedNotes = [...notes];
-    const newContent = e.target.value;
-
-    if (notes[selectedNote].isEncrypted) {
-      const encryptedContent = CryptoJS.AES.encrypt(
-        newContent || " ",
-        password
-      ).toString(); // Encrypt even an empty note
-      updatedNotes[selectedNote].content = encryptedContent;
-    } else {
-      updatedNotes[selectedNote].content = newContent;
-    }
-
-    setDecryptedNote(newContent);
-    setNotes(updatedNotes);
+    setDecryptedNote(e.target.value);
   };
 
   const handleCloseDialog = () => {
-    // Save updated note when closing the dialog
+    // Only save updated note if it has been decrypted successfully or wasn't encrypted
     const updatedNotes = [...notes];
     if (selectedNote !== null) {
-      updatedNotes[selectedNote].content = decryptedNote; // Update the content
+      if (notes[selectedNote].isEncrypted) {
+        updatedNotes[selectedNote].content = CryptoJS.AES.encrypt(
+          decryptedNote || " ",
+          password
+        ).toString(); // Encrypt the note content before saving
+      } else {
+        updatedNotes[selectedNote].content = decryptedNote; // Save the updated content directly
+      }
       setNotes(updatedNotes);
     }
 
     setSelectedNote(null); // Clear selected note
     setPassword("");
     setIsEncrypted(false);
+    setError(""); // Clear error on dialog close
   };
 
   // Function to handle note copy
@@ -139,7 +121,6 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
         display: "grid",
         gridTemplateColumns: "repeat(4, 1fr)",
         gap: 3, // Space between cards
-        marginBottom: "30px", // Space below the notes
       }}
     >
       {notes.map((note, index) => (
@@ -147,7 +128,8 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
           key={index}
           sx={{
             cursor: "pointer",
-            backgroundColor: "white", // White background
+            backgroundColor: isDarkMode ? "#333" : "white", // Dark mode support
+            color: isDarkMode ? "#fff" : "#000", // Text color for dark mode
             minHeight: "150px",
             position: "relative",
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
@@ -156,21 +138,11 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "16px", // Add some padding for better appearance
+            padding: "16px",
+            margin: "10px", // Space below the notes
           }}
           onClick={() => handleCardClick(index)}
         >
-          {/* Faded title overlay */}
-          <Box
-            sx={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              backgroundColor: "rgba(0, 0, 0, 0.1)", // Light overlay
-            }}
-          />
           <CardContent
             sx={{
               position: "relative",
@@ -181,9 +153,15 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
             <Typography
               variant="h5"
               component="div"
-              sx={{ fontWeight: "bold", opacity: 0.7 }}
+              sx={{
+                fontWeight: "bold",
+                opacity: 0.7,
+              }}
+              style={{
+                color: isDarkMode ? "#fff" : "#000",
+              }}
             >
-              {note.title || "No Title"}
+              {note.title && note.title.trim() !== "" ? note.title : "No Title"}
             </Typography>
           </CardContent>
 
@@ -217,16 +195,25 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
               position: "relative",
               borderRadius: 2,
               boxShadow: 2,
-              background: `repeating-linear-gradient(
+              background: isDarkMode
+                ? `repeating-linear-gradient(
+                #333, 
+                #333 15px,
+                #444 16px
+              )` // Dark mode background
+                : `repeating-linear-gradient(
                 white, 
-                white 15px,  /* Adjust the spacing to make lines frequent */
-                #bfbfbf 16px /* Darker gray for clearer contrast */
-              )`, 
+                white 15px,
+                #bfbfbf 16px
+              )`, // Light mode background
             }}
           >
             <Typography variant="h6" gutterBottom sx={{ textAlign: "center" }}>
               {notes[selectedNote].title || "No Title"}
             </Typography>
+
+            {/* Show error message if password is incorrect */}
+            {error && <Alert severity="error">{error}</Alert>}
 
             {/* Copy Note Button positioned on the top-right */}
             <IconButton
@@ -235,10 +222,10 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
                 position: "absolute",
                 top: 8,
                 right: 8,
-                color: "#4a4a4a", // Gray color similar to ChatGPT's button
-                backgroundColor: "#f5f5f5", // Light background for the button
-                '&:hover': {
-                  backgroundColor: "#e0e0e0", // Hover effect for the button
+                color: isDarkMode ? "#fff" : "#4a4a4a", // Adjusted for dark mode
+                backgroundColor: isDarkMode ? "#444" : "#f5f5f5",
+                "&:hover": {
+                  backgroundColor: isDarkMode ? "#555" : "#e0e0e0",
                 },
               }}
             >
@@ -254,7 +241,18 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   fullWidth
-                  sx={{ mb: 2 }}
+                  sx={{
+                    mb: 2,
+                    input: { color: isDarkMode ? "#fff" : "#000" }, // Text color for dark mode
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": {
+                        borderColor: isDarkMode ? "#fff" : "#000", // Border color for dark mode
+                      },
+                      "&:hover fieldset": {
+                        borderColor: isDarkMode ? "#bbb" : "#333", // Hover color for dark mode
+                      },
+                    },
+                  }}
                 />
                 <Button variant="contained" onClick={handlePasswordSubmit}>
                   Decrypt
@@ -262,7 +260,7 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
               </div>
             ) : (
               <TextareaAutosize
-                value={String(decryptedNote)} // Make sure it's a string
+                value={decryptedNote} // Ensure it only replaces content
                 onChange={handleNoteChange}
                 style={{
                   width: "100%",
@@ -273,6 +271,7 @@ const NotesDisplay = ({ notes, setNotes, flag }) => {
                   lineHeight: "30px",
                   resize: "none",
                   padding: "0px 10px",
+                  color: isDarkMode ? "#fff" : "#000", // Text color for dark mode
                 }}
                 minRows={10}
                 autoFocus
