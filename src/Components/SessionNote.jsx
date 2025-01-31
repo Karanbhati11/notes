@@ -1,109 +1,296 @@
 import React, { useState, useEffect } from "react";
-import { Button, TextareaAutosize, Box } from "@mui/material";
+import {
+  Box,
+  Paper,
+  IconButton,
+  Typography,
+  Tooltip,
+  Fade,
+  TextareaAutosize,
+  Snackbar,
+  Alert,
+} from "@mui/material";
+import {
+  ContentCopy as CopyIcon,
+  Delete as ClearIcon,
+  Save as SaveIcon,
+  Info as InfoIcon,
+} from "@mui/icons-material";
+
+const themeConfig = {
+  light: {
+    primary: {
+      main: "#2563eb",
+      light: "#3b82f6",
+      dark: "#1d4ed8",
+    },
+    background: {
+      default: "#ffffff",
+      paper: "#f8fafc",
+      textarea: "#ffffff",
+    },
+    text: {
+      primary: "#1e293b",
+      secondary: "#64748b",
+      placeholder: "#94a3b8",
+    },
+    border: "#e2e8f0",
+    hover: "rgba(37, 99, 235, 0.1)",
+    shadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+  },
+  dark: {
+    primary: {
+      main: "#3b82f6",
+      light: "#60a5fa",
+      dark: "#2563eb",
+    },
+    background: {
+      default: "#0f172a",
+      paper: "#1e293b",
+      textarea: "#1e293b",
+    },
+    text: {
+      primary: "#f8fafc",
+      secondary: "#cbd5e1",
+      placeholder: "#94a3b8",
+    },
+    border: "#334155",
+    hover: "rgba(59, 130, 246, 0.2)",
+    shadow: "0 4px 6px -1px rgba(0, 0, 0, 0.3)",
+  },
+};
 
 const SessionNote = ({ isDarkMode }) => {
-  console.log(isDarkMode);
   const [sessionNote, setSessionNote] = useState("");
-  const [NoteButtonText, setNoteButtonText] = useState("Copy Note");
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+  const [lastSaved, setLastSaved] = useState(null);
+  const theme = isDarkMode ? themeConfig.dark : themeConfig.light;
 
-  // Retrieve session note from sessionStorage when the component mounts
   useEffect(() => {
     const savedSessionNote = sessionStorage.getItem("sessionNote");
     if (savedSessionNote) {
       setSessionNote(savedSessionNote);
+      setLastSaved(new Date(sessionStorage.getItem("lastSaved") || Date.now()));
     }
   }, []);
 
-  // Function to copy the note content
   const handleCopyNote = () => {
     navigator.clipboard.writeText(sessionNote);
-    setNoteButtonText("Copied!!!");
-    setTimeout(() => {
-      setNoteButtonText("Copy Note");
-    }, 1500);
+    showSnackbar("Note copied to clipboard!", "success");
   };
 
-  // Function to clear the note content
   const handleClearNote = () => {
-    setSessionNote(""); // Clear the note input
-    sessionStorage.removeItem("sessionNote"); // Remove the note from sessionStorage
+    if (sessionNote.trim() !== "") {
+      if (window.confirm("Are you sure you want to clear this note?")) {
+        setSessionNote("");
+        sessionStorage.removeItem("sessionNote");
+        sessionStorage.removeItem("lastSaved");
+        setLastSaved(null);
+        showSnackbar("Note cleared", "info");
+      }
+    }
   };
 
-  // Function to handle note changes and save to sessionStorage
   const handleNoteChange = (e) => {
     const newNote = e.target.value;
     setSessionNote(newNote);
-    sessionStorage.setItem("sessionNote", newNote); // Save the updated note to sessionStorage
+    sessionStorage.setItem("sessionNote", newNote);
+    const now = new Date();
+    sessionStorage.setItem("lastSaved", now.toISOString());
+    setLastSaved(now);
+  };
+
+  const showSnackbar = (message, severity) => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleSaveNote = () => {
+    sessionStorage.setItem("sessionNote", sessionNote);
+    const now = new Date();
+    sessionStorage.setItem("lastSaved", now.toISOString());
+    setLastSaved(now);
+    showSnackbar("Note saved successfully!", "success");
   };
 
   return (
-    <Box
-      sx={{
-        mt: 4,
-        p: 2,
-        border: `1px solid ${isDarkMode ? "#555" : "#ccc"}`,
-        borderRadius: "8px",
-        background: isDarkMode
-          ? "rgba(255, 255, 255, 0.1)"
-          : "rgba(0, 0, 0, 0.05)", // Background color for dark and light mode
-        minHeight: "200px",
-        position: "relative",
-        color: isDarkMode ? "#fff" : "#000", // Fix text color for dark and light mode
-      }}
-    >
-      {/* Buttons for copying and clearing note */}
-      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
-        <Button
-          variant="contained"
-          onClick={handleCopyNote}
-          sx={{
-            backgroundColor: isDarkMode ? "#1e88e5" : "#3f51b5", // Blue for dark and light mode
-            "&:hover": {
-              backgroundColor: isDarkMode ? "#1565c0" : "#303f9f", // Darker blue on hover
-            },
-            color: "#fff", // White text for better contrast
-            mr: 2,
-          }}
-        >
-          {NoteButtonText}
-        </Button>
-        <Button
-          variant="outlined"
-          onClick={handleClearNote}
-          sx={{
-            color: isDarkMode ? "#fff" : "#000", // White text in dark mode, black in light mode
-            borderColor: isDarkMode ? "#fff" : "#000", // White border in dark mode, black in light mode
-            "&:hover": {
-              backgroundColor: isDarkMode
-                ? "rgba(255, 255, 255, 0.2)"
-                : "#e0e0e0", // Subtle background on hover in dark mode
-              borderColor: isDarkMode ? "#bbb" : "#000", // Lighter border on hover
-            },
-          }}
-        >
-          Clear Note
-        </Button>
-      </Box>
-
-      {/* The Textarea for the session note */}
-      <TextareaAutosize
-        aria-label="session note"
-        placeholder="Write your temporary note here..."
-        value={sessionNote}
-        onChange={handleNoteChange}
-        style={{
-          width: "100%",
-          border: "none",
-          outline: "none",
-          background: "transparent",
-          fontSize: "16px",
-          lineHeight: "28px",
-          padding: "0px 10px",
-          color: isDarkMode ? "#fff" : "#000", // Fix text color for dark and light mode
+    <Fade in timeout={500}>
+      <Box
+        sx={{
+          mt: 4,
+          height: "calc(100vh - 180px)", // Adjust based on your layout
+          display: "flex",
+          flexDirection: "column",
         }}
-        minRows={10}
-      />
-    </Box>
+      >
+        <Paper
+          elevation={isDarkMode ? 2 : 1}
+          sx={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            backgroundColor: theme.background.paper,
+            borderRadius: 2,
+            overflow: "hidden",
+            border: `1px solid ${theme.border}`,
+            transition: "all 0.3s ease",
+          }}
+        >
+          {/* Header */}
+          <Box
+            sx={{
+              p: 2,
+              borderBottom: `1px solid ${theme.border}`,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              backgroundColor: theme.background.paper,
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography
+                variant="h6"
+                sx={{ color: theme.text.primary, fontWeight: 600 }}
+              >
+                Session Note
+              </Typography>
+              <Tooltip title="This note will persist only for your current session">
+                <InfoIcon
+                  sx={{
+                    color: theme.text.secondary,
+                    fontSize: "1rem",
+                    cursor: "help",
+                  }}
+                />
+              </Tooltip>
+            </Box>
+
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Tooltip title="Save Note">
+                <IconButton
+                  onClick={handleSaveNote}
+                  sx={{
+                    color: theme.primary.main,
+                    "&:hover": { backgroundColor: theme.hover },
+                  }}
+                >
+                  <SaveIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Copy Note">
+                <IconButton
+                  onClick={handleCopyNote}
+                  sx={{
+                    color: theme.primary.main,
+                    "&:hover": { backgroundColor: theme.hover },
+                  }}
+                >
+                  <CopyIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Clear Note">
+                <IconButton
+                  onClick={handleClearNote}
+                  sx={{
+                    color: "#ef4444",
+                    "&:hover": { backgroundColor: "rgba(239, 68, 68, 0.1)" },
+                  }}
+                >
+                  <ClearIcon />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </Box>
+
+          {/* Textarea Container */}
+          <Box
+            sx={{
+              flex: 1,
+              position: "relative",
+              backgroundColor: theme.background.textarea,
+              overflow: "hidden",
+            }}
+          >
+            <TextareaAutosize
+              aria-label="session note"
+              placeholder="Write your temporary note here..."
+              value={sessionNote}
+              onChange={handleNoteChange}
+              style={{
+                width: "100%",
+                height: "100%",
+                position: "absolute",
+                top: 0,
+                left: 0,
+                padding: "16px",
+                backgroundColor: "transparent",
+                color: theme.text.primary,
+                fontSize: "16px",
+                lineHeight: "1.5",
+                border: "none",
+                outline: "none",
+                resize: "none",
+                fontFamily: "inherit",
+                overflowY: "auto",
+                "&::-webkit-scrollbar": {
+                  width: "8px",
+                },
+                "&::-webkit-scrollbar-track": {
+                  background: theme.background.paper,
+                },
+                "&::-webkit-scrollbar-thumb": {
+                  background: theme.border,
+                  borderRadius: "4px",
+                },
+                "&::-webkit-scrollbar-thumb:hover": {
+                  background: theme.text.secondary,
+                },
+              }}
+            />
+          </Box>
+
+          {/* Footer */}
+          <Box
+            sx={{
+              p: 2,
+              borderTop: `1px solid ${theme.border}`,
+              display: "flex",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              backgroundColor: theme.background.paper,
+            }}
+          >
+            {lastSaved && (
+              <Typography
+                variant="caption"
+                sx={{ color: theme.text.secondary }}
+              >
+                Last saved: {new Date(lastSaved).toLocaleTimeString()}
+              </Typography>
+            )}
+          </Box>
+        </Paper>
+
+        {/* Snackbar for notifications */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={3000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </Box>
+    </Fade>
   );
 };
 

@@ -1,6 +1,9 @@
-import React from "react";
-import { Button, Box, Menu, MenuItem, IconButton, Switch } from "@mui/material";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
+import React, { useState } from "react";
+import {
+  UserCircleIcon,
+  EllipsisVerticalIcon,
+  CloudArrowUpIcon,
+} from "@heroicons/react/24/outline";
 
 const Navbar = ({
   showSessionNote,
@@ -8,127 +11,125 @@ const Navbar = ({
   handleResetApp,
   handleExportNotes,
   handleImportNotes,
-  isDarkMode, // Prop for dark mode state
-  toggleDarkMode, // Prop for toggling dark mode
+  isDarkMode,
+  toggleDarkMode,
 }) => {
-  const [anchorEl, setAnchorEl] = React.useState(null);
-  const open = Boolean(anchorEl);
-
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        mb: 4,
-        padding: "10px 20px",
-        backgroundColor: isDarkMode ? "#333" : "#f5f5f5", // Conditional background color based on dark mode
-        color: isDarkMode ? "white" : "black", // Conditional text color
-      }}
+    <nav
+      className={`${
+        isDarkMode ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-800"
+      } px-6 py-4 mb-6 shadow-md`}
     >
-      {/* Centered Buttons for Notes and Session Note */}
-      <Box sx={{ display: "flex", justifyContent: "center", flex: 1 }}>
-        <Button
-          variant={!showSessionNote ? "contained" : "outlined"}
-          onClick={() => setShowSessionNote(false)}
-          sx={{
-            color: isDarkMode ? "white" : "black",
-            borderColor: isDarkMode ? "white" : "black",
-            mr: 2,
-            "&:hover": {
-              backgroundColor: isDarkMode ? "#444" : "#e0e0e0",
-              borderColor: isDarkMode ? "white" : "black",
-            },
-          }}
-        >
-          Notes
-        </Button>
-        <Button
-          variant={showSessionNote ? "contained" : "outlined"}
-          onClick={() => setShowSessionNote(true)}
-          sx={{
-            color: isDarkMode ? "white" : "black",
-            borderColor: isDarkMode ? "white" : "black",
-            "&:hover": {
-              backgroundColor: isDarkMode ? "#444" : "#e0e0e0",
-              borderColor: isDarkMode ? "white" : "black",
-            },
-          }}
-        >
-          Session Note
-        </Button>
-      </Box>
-
-      {/* Right-side buttons: Reset App, Export/Import Dropdown, and Dark Mode Switch */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-        {/* Reset App Button */}
-        <Button
-          onClick={handleResetApp}
-          variant="outlined"
-          sx={{
-            borderColor: "red",
-            color: "red",
-            "&:hover": {
-              backgroundColor: "rgba(255, 0, 0, 0.1)", // Light red background on hover
-              borderColor: "darkred",
-            },
-          }}
-        >
-          Reset App
-        </Button>
-
-        {/* Dropdown for Export and Import */}
-        <IconButton
-          aria-label="more"
-          aria-controls="long-menu"
-          aria-haspopup="true"
-          onClick={handleClick}
-        >
-          <MoreVertIcon sx={{ color: isDarkMode ? "white" : "black" }} />
-        </IconButton>
-        <Menu
-          id="long-menu"
-          anchorEl={anchorEl}
-          open={open}
-          onClose={handleClose}
-        >
-          <MenuItem
-            onClick={() => {
-              handleExportNotes();
-              handleClose();
-            }}
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        {/* Left Side Buttons */}
+        <div className="flex space-x-4">
+          <button
+            onClick={() => setShowSessionNote(false)}
+            className={`px-4 py-2 rounded-md transition-colors duration-200 ${
+              !showSessionNote
+                ? isDarkMode
+                  ? "bg-gray-700 text-white"
+                  : "bg-white text-gray-800 shadow-sm"
+                : isDarkMode
+                ? "border border-gray-600"
+                : "border border-gray-300"
+            }`}
           >
-            Export Notes
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
-              handleImportNotes();
-              handleClose();
-            }}
+            Notes
+          </button>
+          <button
+            onClick={() => setShowSessionNote(true)}
+            className={`px-4 py-2 rounded-md transition-colors duration-200 ${
+              showSessionNote
+                ? isDarkMode
+                  ? "bg-gray-700 text-white"
+                  : "bg-white text-gray-800 shadow-sm"
+                : isDarkMode
+                ? "border border-gray-600"
+                : "border border-gray-300"
+            }`}
           >
-            Import Notes
-          </MenuItem>
-        </Menu>
+            Session Note
+          </button>
+        </div>
 
-        {/* Dark Mode Switch */}
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <Switch
-            checked={isDarkMode}
-            onChange={toggleDarkMode}
-            color="default"
-          />
-          <span>{isDarkMode ? "Dark Mode" : "Light Mode"}</span>
-        </Box>
-      </Box>
-    </Box>
+        {/* Right Side Controls */}
+        <div className="flex items-center space-x-4">
+          {/* Reset App Button */}
+          <button
+            onClick={handleResetApp}
+            className="px-4 py-2 text-red-500 border border-red-500 rounded-md hover:bg-red-50 hover:text-red-600 transition-colors duration-200"
+          >
+            Reset App
+          </button>
+
+          {/* Backup Icon */}
+          <button className="p-2 hover:bg-gray-200 rounded-full dark:hover:bg-gray-700">
+            <CloudArrowUpIcon className="h-6 w-6" />
+          </button>
+
+          {/* User Profile */}
+          <button className="p-2 hover:bg-gray-200 rounded-full dark:hover:bg-gray-700">
+            <UserCircleIcon className="h-6 w-6" />
+          </button>
+
+          {/* Export/Import Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-2 hover:bg-gray-200 rounded-full dark:hover:bg-gray-700"
+            >
+              <EllipsisVerticalIcon className="h-6 w-6" />
+            </button>
+
+            {isMenuOpen && (
+              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5">
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      handleExportNotes();
+                      setIsMenuOpen(false);
+                    }}
+                    className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 w-full text-left"
+                  >
+                    Export Notes
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleImportNotes();
+                      setIsMenuOpen(false);
+                    }}
+                    className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 w-full text-left"
+                  >
+                    Import Notes
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Dark Mode Toggle */}
+          <div className="flex items-center space-x-2">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={isDarkMode}
+                onChange={toggleDarkMode}
+              />
+              <div
+                className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600`}
+              ></div>
+              <span className="ml-2 text-sm font-medium">
+                {isDarkMode ? "Dark" : "Light"}
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </nav>
   );
 };
 
