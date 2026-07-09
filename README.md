@@ -1,4 +1,4 @@
-# link : [https://mynot.netlify.app/](https://stickynoteonline.netlify.app/)
+# link : [StickyNoteOnline](https://stickynoteonline.netlify.app/)
 
 
 # Getting Started with Create React App
