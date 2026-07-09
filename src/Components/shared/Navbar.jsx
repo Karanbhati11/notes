@@ -1,9 +1,26 @@
 import React, { useState } from "react";
-import {
-  UserCircleIcon,
-  EllipsisVerticalIcon,
-  CloudArrowUpIcon,
-} from "@heroicons/react/24/outline";
+
+// Star icon matching the Figma blackboard star component
+const StarIcon = ({ color = "#B388FF" }) => (
+  <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M14 2L17.09 9.26L25 10.27L19.5 15.64L20.91 23.5L14 19.77L7.09 23.5L8.5 15.64L3 10.27L10.91 9.26L14 2Z"
+      fill={color}
+      stroke={color}
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const DotsIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="10" cy="4" r="1.5" fill="#CFCFCF" />
+    <circle cx="10" cy="10" r="1.5" fill="#CFCFCF" />
+    <circle cx="10" cy="16" r="1.5" fill="#CFCFCF" />
+  </svg>
+);
 
 const Navbar = ({
   showSessionNote,
@@ -11,121 +28,79 @@ const Navbar = ({
   handleResetApp,
   handleExportNotes,
   handleImportNotes,
-  isDarkMode,
-  toggleDarkMode,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <nav
-      className={`${
-        isDarkMode ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-800"
-      } px-6 py-4 mb-6 shadow-md`}
-    >
+    <nav className="bg-[#161616] border-b border-[#2a2a2a] px-8 py-4">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Left Side Buttons */}
-        <div className="flex space-x-4">
+        {/* Logo / Brand */}
+        <div className="flex items-center gap-3">
+          <StarIcon color="#B388FF" />
+          <span className="text-white font-bold text-xl tracking-tight font-inter">
+            Sticky Notes Online
+          </span>
+        </div>
+
+        {/* Nav Tabs */}
+        <div className="flex items-center gap-1">
           <button
             onClick={() => setShowSessionNote(false)}
-            className={`px-4 py-2 rounded-md transition-colors duration-200 ${
+            className={`px-5 py-2 rounded text-sm font-medium transition-all duration-200 font-inter ${
               !showSessionNote
-                ? isDarkMode
-                  ? "bg-gray-700 text-white"
-                  : "bg-white text-gray-800 shadow-sm"
-                : isDarkMode
-                ? "border border-gray-600"
-                : "border border-gray-300"
+                ? "bg-[#2a2a2a] text-white"
+                : "text-[#707070] hover:text-[#CFCFCF] hover:bg-[#1e1e1e]"
             }`}
           >
             Notes
           </button>
           <button
             onClick={() => setShowSessionNote(true)}
-            className={`px-4 py-2 rounded-md transition-colors duration-200 ${
+            className={`px-5 py-2 rounded text-sm font-medium transition-all duration-200 font-inter ${
               showSessionNote
-                ? isDarkMode
-                  ? "bg-gray-700 text-white"
-                  : "bg-white text-gray-800 shadow-sm"
-                : isDarkMode
-                ? "border border-gray-600"
-                : "border border-gray-300"
+                ? "bg-[#2a2a2a] text-white"
+                : "text-[#707070] hover:text-[#CFCFCF] hover:bg-[#1e1e1e]"
             }`}
           >
             Session Note
           </button>
         </div>
 
-        {/* Right Side Controls */}
-        <div className="flex items-center space-x-4">
-          {/* Reset App Button */}
+        {/* Right Actions */}
+        <div className="flex items-center gap-2">
           <button
             onClick={handleResetApp}
-            className="px-4 py-2 text-red-500 border border-red-500 rounded-md hover:bg-red-50 hover:text-red-600 transition-colors duration-200"
+            className="px-4 py-2 text-[#FF8A80] border border-[#FF8A80] rounded text-sm font-medium hover:bg-[#FF8A80] hover:text-black transition-all duration-200 font-inter"
           >
-            Reset App
+            Reset
           </button>
 
-          {/* Backup Icon */}
-          <button className="p-2 hover:bg-gray-200 rounded-full dark:hover:bg-gray-700">
-            <CloudArrowUpIcon className="h-6 w-6" />
-          </button>
-
-          {/* User Profile */}
-          <button className="p-2 hover:bg-gray-200 rounded-full dark:hover:bg-gray-700">
-            <UserCircleIcon className="h-6 w-6" />
-          </button>
-
-          {/* Export/Import Dropdown */}
+          {/* Export / Import dropdown */}
           <div className="relative">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 hover:bg-gray-200 rounded-full dark:hover:bg-gray-700"
+              className="p-2 rounded hover:bg-[#2a2a2a] transition-colors"
+              aria-label="More options"
             >
-              <EllipsisVerticalIcon className="h-6 w-6" />
+              <DotsIcon />
             </button>
 
             {isMenuOpen && (
-              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5">
-                <div className="py-1">
-                  <button
-                    onClick={() => {
-                      handleExportNotes();
-                      setIsMenuOpen(false);
-                    }}
-                    className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 w-full text-left"
-                  >
-                    Export Notes
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleImportNotes();
-                      setIsMenuOpen(false);
-                    }}
-                    className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 w-full text-left"
-                  >
-                    Import Notes
-                  </button>
-                </div>
+              <div className="absolute right-0 mt-2 w-44 rounded bg-[#1e1e1e] border border-[#2a2a2a] shadow-board z-50">
+                <button
+                  onClick={() => { handleExportNotes(); setIsMenuOpen(false); }}
+                  className="block w-full text-left px-4 py-2.5 text-sm text-[#CFCFCF] hover:bg-[#2a2a2a] hover:text-white transition-colors font-inter"
+                >
+                  Export Notes
+                </button>
+                <button
+                  onClick={() => { handleImportNotes(); setIsMenuOpen(false); }}
+                  className="block w-full text-left px-4 py-2.5 text-sm text-[#CFCFCF] hover:bg-[#2a2a2a] hover:text-white transition-colors font-inter"
+                >
+                  Import Notes
+                </button>
               </div>
             )}
-          </div>
-
-          {/* Dark Mode Toggle */}
-          <div className="flex items-center space-x-2">
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                checked={isDarkMode}
-                onChange={toggleDarkMode}
-              />
-              <div
-                className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600`}
-              ></div>
-              <span className="ml-2 text-sm font-medium">
-                {isDarkMode ? "Dark" : "Light"}
-              </span>
-            </label>
           </div>
         </div>
       </div>

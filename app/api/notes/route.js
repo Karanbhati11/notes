@@ -1,0 +1,45 @@
+import { NextResponse } from "next/server";
+import { getSession } from "@/lib/auth";
+import { connectDB } from "@/lib/mongoose";
+import { User } from "@/lib/models/User";
+import { Note } from "@/lib/models/Note";
+
+async function getVerifiedUser() {
+  const session = await getSession();
+  if (!session) return null;
+  await connectDB();
+  const user = await User.findById(session.userId).select("emailVerified");
+  if (!user?.emailVerified) return null;
+  return session.userId;
+}
+
+// GET — fetch all notes for the verified user
+export async function GET() {
+  const userId = await getVerifiedUser();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const notes = await Note.find({ userId }).lean();
+  // Strip MongoDB fields, return clean client shape
+  const clean = notes.map(({ _id, userId: _u, __v, ...rest }) => ({
+    _id: _id.toString(),
+    ...rest,
+  }));
+  return NextResponse.json({ notes: clean });
+}
+
+// POST — replace all notes for the verified user (full sync)
+export async function POST(req) {
+  const userId = await getVerifiedUser();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { notes } = await req.json();
+  if (!Array.isArray(notes)) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+
+  // Delete existing and re-insert — simple full-replace sync
+  await Note.deleteMany({ userId });
+  if (notes.length > 0) {
+    await Note.insertMany(notes.map((n) => ({ ...n, userId })));
+  }
+
+  return NextResponse.json({ ok: true });
+}

@@ -1,402 +1,375 @@
 import React, { useState } from "react";
-import {
-  Card,
-  CardContent,
-  Dialog,
-  Box,
-  TextareaAutosize,
-  TextField,
-  IconButton,
-  Typography,
-  Button,
-  Alert,
-  Fade,
-  Tooltip,
-  DialogTitle,
-  DialogContent,
-  Chip,
-} from "@mui/material";
-import {
-  Delete as DeleteIcon,
-  ContentCopy as ContentCopyIcon,
-  Lock as LockIcon,
-  LockOpen as LockOpenIcon,
-  Close as CloseIcon,
-  Save as SaveIcon,
-} from "@mui/icons-material";
 import CryptoJS from "crypto-js";
 
-const NotesDisplay = ({ notes, setNotes, flag, isDarkMode }) => {
+const STICKY_COLORS = {
+  purple: { bg: "#B388FF", text: "#000000" },
+  green:  { bg: "#CCFF90", text: "#000000" },
+  red:    { bg: "#FF8A80", text: "#000000" },
+  yellow: { bg: "#FFFF8D", text: "#000000" },
+  blue:   { bg: "#A0AFFF", text: "#000000" },
+  // fallback for legacy notes without a color
+  default: { bg: "#B388FF", text: "#000000" },
+};
+
+const NOTE_COLORS_LIST = [
+  { value: "purple", bg: "#B388FF" },
+  { value: "green",  bg: "#CCFF90" },
+  { value: "red",    bg: "#FF8A80" },
+  { value: "yellow", bg: "#FFFF8D" },
+  { value: "blue",   bg: "#A0AFFF" },
+];
+
+const getColor = (note, index) => {
+  if (note.color && STICKY_COLORS[note.color]) return STICKY_COLORS[note.color];
+  // Cycle through colors for legacy notes
+  const keys = Object.keys(STICKY_COLORS).filter((k) => k !== "default");
+  return STICKY_COLORS[keys[index % keys.length]];
+};
+
+// ─── Icons ───────────────────────────────────────────────────────────────────
+const DeleteIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" />
+  </svg>
+);
+
+const LockIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+
+const CopyIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const SaveIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" />
+  </svg>
+);
+
+const UnlockIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" />
+  </svg>
+);
+
+// ─── Sticky Note Card ─────────────────────────────────────────────────────────
+const StickyCard = ({ note, index, onOpen, onDelete }) => {
+  const { bg, text } = getColor(note, index);
+
+  return (
+    <div
+      onClick={() => onOpen(index)}
+      className="relative cursor-pointer group transition-all duration-200 hover:-translate-y-1"
+      style={{
+        boxShadow: "0px 4px 4px rgba(0,0,0,0.25), 0px 8px 8px rgba(0,0,0,0.04), 0px 8px 16px rgba(0,0,0,0.08)",
+      }}
+    >
+      {/* Sticky note body */}
+      <div
+        className="flex flex-col gap-4 p-6 pt-8 min-h-[180px]"
+        style={{ backgroundColor: bg, color: text }}
+      >
+        {/* Title row */}
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-bold text-lg leading-tight font-inter break-words flex-1">
+            {note.title || "Untitled"}
+          </h3>
+          {note.isEncrypted && (
+            <span className="shrink-0 opacity-60 mt-0.5">
+              <LockIcon />
+            </span>
+          )}
+        </div>
+
+        {/* Preview content */}
+        <p className="font-medium text-sm leading-relaxed font-inter line-clamp-3 opacity-80">
+          {note.isEncrypted ? "🔒 Encrypted note" : note.content}
+        </p>
+
+        {/* Footer */}
+        <div className="mt-auto flex items-center justify-between pt-2 border-t border-black/10">
+          <span className="text-xs font-inter opacity-50">
+            {note.createdAt
+              ? new Date(note.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+              : ""}
+          </span>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(e, index); }}
+            className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity p-1 rounded hover:bg-black/10"
+            aria-label="Delete note"
+          >
+            <DeleteIcon />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+const NotesDisplay = ({ notes, setNotes }) => {
   const [selectedNote, setSelectedNote] = useState(null);
   const [password, setPassword] = useState("");
-  const [decryptedNote, setDecryptedNote] = useState("");
-  const [isEncrypted, setIsEncrypted] = useState(false);
+  const [decryptedContent, setDecryptedContent] = useState("");
+  const [decryptedColor, setDecryptedColor] = useState("purple");
+  const [needsPassword, setNeedsPassword] = useState(false);
   const [error, setError] = useState("");
-  const [copySuccess, setCopySuccess] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const getCardColor = (index) => {
-    const colors = isDarkMode
-      ? ["#2d3748", "#2c3e50", "#34495e", "#2d3436"]
-      : ["#f7fafc", "#edf2f7", "#e2e8f0", "#edf2f7"];
-    return colors[index % colors.length];
-  };
-
-  const handleDeleteNote = async (event, index) => {
-    event.stopPropagation();
-    const note = notes[index];
-
-    if (note.isEncrypted) {
-      try {
-        const result = await new Promise((resolve) => {
-          const password = prompt("Enter password to delete this note:");
-          if (password) {
-            try {
-              const decrypted = CryptoJS.AES.decrypt(
-                note.content,
-                password
-              ).toString(CryptoJS.enc.Utf8);
-              resolve(decrypted !== "");
-            } catch {
-              resolve(false);
-            }
-          } else {
-            resolve(false);
-          }
-        });
-
-        if (result) {
-          const updatedNotes = notes.filter((_, i) => i !== index);
-          setNotes(updatedNotes);
-        } else {
-          setError("Incorrect password. Unable to delete the note.");
-        }
-      } catch (error) {
-        setError("An error occurred while deleting the note.");
-      }
-    } else {
-      const updatedNotes = notes.filter((_, i) => i !== index);
-      setNotes(updatedNotes);
-    }
-  };
-
-  const handleCardClick = (index) => {
+  const handleOpen = (index) => {
     const note = notes[index];
     setSelectedNote(index);
-    setIsEncrypted(note.isEncrypted);
-    setDecryptedNote(note.isEncrypted ? "" : note.content);
     setError("");
-  };
-
-  const handlePasswordSubmit = () => {
-    const note = notes[selectedNote];
-    try {
-      const decrypted = CryptoJS.AES.decrypt(note.content, password).toString(
-        CryptoJS.enc.Utf8
-      );
-      if (decrypted) {
-        setDecryptedNote(decrypted);
-        setError("");
-        setIsEncrypted(false);
-      } else {
-        setError("Incorrect password. Please try again.");
-      }
-    } catch (error) {
-      setError("Incorrect password. Please try again.");
+    setPassword("");
+    setDecryptedColor(note.color || "purple");
+    if (note.isEncrypted) {
+      setNeedsPassword(true);
+      setDecryptedContent("");
+    } else {
+      setNeedsPassword(false);
+      setDecryptedContent(note.content);
     }
-  };
-
-  const handleCopyNote = () => {
-    navigator.clipboard.writeText(decryptedNote);
-    setCopySuccess(true);
-    setTimeout(() => setCopySuccess(false), 2000);
-  };
-
-  const handleSaveAndClose = () => {
-    const updatedNotes = [...notes];
-    if (selectedNote !== null) {
-      if (notes[selectedNote].isEncrypted) {
-        updatedNotes[selectedNote].content = CryptoJS.AES.encrypt(
-          decryptedNote || " ",
-          password
-        ).toString();
-      } else {
-        updatedNotes[selectedNote].content = decryptedNote;
-      }
-      setNotes(updatedNotes);
-    }
-    handleClose();
   };
 
   const handleClose = () => {
     setSelectedNote(null);
     setPassword("");
-    setIsEncrypted(false);
+    setDecryptedContent("");
+    setNeedsPassword(false);
     setError("");
-    setDecryptedNote("");
   };
 
+  const handleDecrypt = () => {
+    const note = notes[selectedNote];
+    try {
+      const decrypted = CryptoJS.AES.decrypt(note.content, password).toString(CryptoJS.enc.Utf8);
+      if (decrypted) {
+        setDecryptedContent(decrypted);
+        setNeedsPassword(false);
+        setError("");
+      } else {
+        setError("Wrong password. Try again.");
+      }
+    } catch {
+      setError("Wrong password. Try again.");
+    }
+  };
+
+  const handleSave = () => {
+    const updated = [...notes];
+    if (notes[selectedNote].isEncrypted && password) {
+      updated[selectedNote] = {
+        ...updated[selectedNote],
+        content: CryptoJS.AES.encrypt(decryptedContent || " ", password).toString(),
+        color: decryptedColor,
+      };
+    } else {
+      updated[selectedNote] = {
+        ...updated[selectedNote],
+        content: decryptedContent,
+        color: decryptedColor,
+      };
+    }
+    setNotes(updated);
+    localStorage.setItem("notes", JSON.stringify(updated));
+    handleClose();
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(decryptedContent);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDelete = async (e, index) => {
+    e.stopPropagation();
+    const note = notes[index];
+    if (note.isEncrypted) {
+      const pwd = prompt("Enter password to delete this note:");
+      if (!pwd) return;
+      try {
+        const dec = CryptoJS.AES.decrypt(note.content, pwd).toString(CryptoJS.enc.Utf8);
+        if (!dec) { alert("Incorrect password."); return; }
+      } catch { alert("Incorrect password."); return; }
+    }
+    const updated = notes.filter((_, i) => i !== index);
+    setNotes(updated);
+    localStorage.setItem("notes", JSON.stringify(updated));
+  };
+
+  const activeNote = selectedNote !== null ? notes[selectedNote] : null;
+  const activeColors = activeNote ? getColor(activeNote, selectedNote) : STICKY_COLORS.purple;
+
+  if (notes.length === 0) {
+    return (
+      <div className="max-w-5xl mx-auto px-6 pb-12">
+        <div className="bg-[#161616] border border-dashed border-[#2a2a2a] rounded-sm p-16 text-center">
+          <p className="text-[#707070] text-lg font-inter">No notes yet.</p>
+          <p className="text-[#3a3a3a] text-sm font-inter mt-1">Create one above to get started.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <Box sx={{ p: 3 }}>
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            sm: "repeat(2, 1fr)",
-            md: "repeat(3, 1fr)",
-            lg: "repeat(4, 1fr)",
-          },
-          gap: 3,
-        }}
-      >
+    <div className="max-w-5xl mx-auto px-6 pb-12">
+      {/* Section header */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="h-px flex-1 bg-[#2a2a2a]" />
+        <span className="text-[#707070] text-xs uppercase tracking-widest font-inter">
+          {notes.length} {notes.length === 1 ? "Note" : "Notes"}
+        </span>
+        <div className="h-px flex-1 bg-[#2a2a2a]" />
+      </div>
+
+      {/* Notes grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {notes.map((note, index) => (
-          <Fade in={true} key={index}>
-            <Card
-              onClick={() => handleCardClick(index)}
-              sx={{
-                cursor: "pointer",
-                backgroundColor: getCardColor(index),
-                minHeight: "200px",
-                display: "flex",
-                flexDirection: "column",
-                position: "relative",
-                transition: "transform 0.2s, box-shadow 0.2s",
-                "&:hover": {
-                  transform: "translateY(-4px)",
-                  boxShadow: isDarkMode
-                    ? "0 8px 16px rgba(0,0,0,0.4)"
-                    : "0 8px 16px rgba(0,0,0,0.1)",
-                },
-              }}
-            >
-              <CardContent sx={{ flex: 1, p: 3 }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    mb: 2,
-                  }}
-                >
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      color: isDarkMode ? "#fff" : "#1a202c",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {note.title || "Untitled"}
-                  </Typography>
-                  {note.isEncrypted && (
-                    <LockIcon
-                      sx={{
-                        color: isDarkMode ? "#90caf9" : "#3182ce",
-                        fontSize: "1.2rem",
-                      }}
-                    />
-                  )}
-                </Box>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: isDarkMode ? "#cbd5e0" : "#4a5568",
-                    mb: 2,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: "vertical",
-                  }}
-                >
-                  {note.isEncrypted ? "🔒 Encrypted Note" : note.content}
-                </Typography>
-                <Box
-                  sx={{
-                    position: "absolute",
-                    bottom: 8,
-                    right: 8,
-                    display: "flex",
-                    gap: 1,
-                  }}
-                >
-                  <Tooltip title="Delete Note">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => handleDeleteNote(e, index)}
-                      sx={{
-                        color: isDarkMode ? "#fc8181" : "#e53e3e",
-                        "&:hover": {
-                          backgroundColor: isDarkMode
-                            ? "rgba(252,129,129,0.1)"
-                            : "rgba(229,62,62,0.1)",
-                        },
-                      }}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </CardContent>
-            </Card>
-          </Fade>
+          <StickyCard
+            key={index}
+            note={note}
+            index={index}
+            onOpen={handleOpen}
+            onDelete={handleDelete}
+          />
         ))}
-      </Box>
+      </div>
 
-      <Dialog
-        open={selectedNote !== null}
-        onClose={handleClose}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: {
-            backgroundColor: isDarkMode ? "#1a202c" : "#fff",
-            backgroundImage: "none",
-          },
-        }}
-      >
-        <DialogTitle
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            bgcolor: isDarkMode ? "#2d3748" : "#f7fafc",
-            color: isDarkMode ? "#fff" : "#1a202c",
-          }}
+      {/* Modal */}
+      {selectedNote !== null && activeNote && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.85)" }}
+          onClick={handleClose}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="h6">
-              {selectedNote !== null &&
-                (notes[selectedNote].title || "Untitled")}
-            </Typography>
-            {selectedNote !== null && notes[selectedNote].isEncrypted && (
-              <Chip
-                icon={<LockIcon sx={{ fontSize: "1rem" }} />}
-                label="Encrypted"
-                size="small"
-                sx={{
-                  bgcolor: isDarkMode ? "#2c5282" : "#ebf8ff",
-                  color: isDarkMode ? "#90caf9" : "#2b6cb0",
-                }}
-              />
-            )}
-          </Box>
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <Tooltip title={copySuccess ? "Copied!" : "Copy Note"}>
-              <IconButton onClick={handleCopyNote} size="small">
-                <ContentCopyIcon />
-              </IconButton>
-            </Tooltip>
-            <IconButton onClick={handleClose} size="small">
-              <CloseIcon />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-
-        <DialogContent
-          sx={{
-            mt: 2,
-            bgcolor: isDarkMode ? "#1a202c" : "#fff",
-            color: isDarkMode ? "#fff" : "#1a202c",
-          }}
-        >
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          {isEncrypted ? (
-            <Box sx={{ mt: 2 }}>
-              <TextField
-                label="Password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                fullWidth
-                variant="outlined"
-                sx={{
-                  mb: 2,
-                  "& .MuiOutlinedInput-root": {
-                    color: isDarkMode ? "#fff" : "#1a202c",
-                    "& fieldset": {
-                      borderColor: isDarkMode ? "#4a5568" : "#e2e8f0",
-                    },
-                    "&:hover fieldset": {
-                      borderColor: isDarkMode ? "#90caf9" : "#3182ce",
-                    },
-                  },
-                  "& .MuiInputLabel-root": {
-                    color: isDarkMode ? "#cbd5e0" : "#4a5568",
-                  },
-                }}
-              />
-              <Button
-                variant="contained"
-                onClick={handlePasswordSubmit}
-                startIcon={<LockOpenIcon />}
-                sx={{
-                  bgcolor: isDarkMode ? "#2c5282" : "#3182ce",
-                  "&:hover": {
-                    bgcolor: isDarkMode ? "#2b6cb0" : "#2c5282",
-                  },
-                }}
-              >
-                Decrypt Note
-              </Button>
-            </Box>
-          ) : (
-            <TextareaAutosize
-              value={decryptedNote}
-              onChange={(e) => setDecryptedNote(e.target.value)}
-              style={{
-                width: "100%",
-                minHeight: "300px",
-                padding: "16px",
-                backgroundColor: isDarkMode ? "#2d3748" : "#fff",
-                color: isDarkMode ? "#fff" : "#1a202c",
-                border: `1px solid ${isDarkMode ? "#4a5568" : "#e2e8f0"}`,
-                borderRadius: "4px",
-                fontSize: "16px",
-                lineHeight: "1.5",
-                resize: "vertical",
-              }}
-            />
-          )}
-
-          <Box
-            sx={{ mt: 2, display: "flex", justifyContent: "flex-end", gap: 2 }}
+          <div
+            className="w-full max-w-lg rounded-sm shadow-board overflow-hidden"
+            style={{ backgroundColor: activeColors.bg }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <Button
-              onClick={handleClose}
-              variant="outlined"
-              startIcon={<CloseIcon />}
-              sx={{
-                color: isDarkMode ? "#cbd5e0" : "#4a5568",
-                borderColor: isDarkMode ? "#4a5568" : "#e2e8f0",
-                "&:hover": {
-                  borderColor: isDarkMode ? "#90caf9" : "#3182ce",
-                },
-              }}
+            {/* Modal Header */}
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b"
+              style={{ borderColor: "rgba(0,0,0,0.1)" }}
             >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveAndClose}
-              variant="contained"
-              startIcon={<SaveIcon />}
-              sx={{
-                bgcolor: isDarkMode ? "#2c5282" : "#3182ce",
-                "&:hover": {
-                  bgcolor: isDarkMode ? "#2b6cb0" : "#2c5282",
-                },
-              }}
-            >
-              Save Changes
-            </Button>
-          </Box>
-        </DialogContent>
-      </Dialog>
-    </Box>
+              <div className="flex items-center gap-2">
+                <h2 className="font-bold text-lg font-inter text-black truncate">
+                  {activeNote.title || "Untitled"}
+                </h2>
+                {activeNote.isEncrypted && (
+                  <span className="text-black/50"><LockIcon /></span>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                {!needsPassword && (
+                  <button
+                    onClick={handleCopy}
+                    className="p-1.5 rounded hover:bg-black/10 transition-colors text-black/60 hover:text-black"
+                    aria-label="Copy"
+                    title={copied ? "Copied!" : "Copy"}
+                  >
+                    <CopyIcon />
+                  </button>
+                )}
+                <button
+                  onClick={handleClose}
+                  className="p-1.5 rounded hover:bg-black/10 transition-colors text-black/60 hover:text-black"
+                  aria-label="Close"
+                >
+                  <CloseIcon />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              {error && (
+                <div className="bg-black/10 text-black text-sm px-3 py-2 rounded font-inter">
+                  {error}
+                </div>
+              )}
+
+              {needsPassword ? (
+                <div className="space-y-3">
+                  <p className="text-black/70 text-sm font-inter">Enter the password to unlock this note.</p>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleDecrypt()}
+                    placeholder="Password..."
+                    className="w-full bg-black/10 border border-black/20 rounded px-3 py-2 text-black placeholder-black/40 outline-none focus:border-black/40 text-sm font-inter"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleDecrypt}
+                    className="w-full bg-black/80 hover:bg-black text-white font-medium py-2 rounded text-sm font-inter flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <UnlockIcon />
+                    Unlock Note
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <textarea
+                    value={decryptedContent}
+                    onChange={(e) => setDecryptedContent(e.target.value)}
+                    rows={8}
+                    className="w-full bg-black/10 border border-black/20 rounded px-3 py-2 text-black placeholder-black/40 outline-none focus:border-black/40 text-sm font-inter resize-none leading-relaxed"
+                  />
+
+                  {/* Color picker in modal */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-black/50 text-xs font-inter uppercase tracking-widest">Color:</span>
+                    {NOTE_COLORS_LIST.map((c) => (
+                      <button
+                        key={c.value}
+                        type="button"
+                        onClick={() => setDecryptedColor(c.value)}
+                        className={`w-5 h-5 rounded-full transition-all ${
+                          decryptedColor === c.value
+                            ? "ring-2 ring-black ring-offset-1"
+                            : "hover:scale-110"
+                        }`}
+                        style={{ backgroundColor: c.bg }}
+                        aria-label={`Set color to ${c.value}`}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={handleClose}
+                      className="flex-1 bg-black/10 hover:bg-black/20 text-black font-medium py-2 rounded text-sm font-inter transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      className="flex-1 bg-black/80 hover:bg-black text-white font-medium py-2 rounded text-sm font-inter flex items-center justify-center gap-2 transition-colors"
+                    >
+                      <SaveIcon />
+                      Save
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

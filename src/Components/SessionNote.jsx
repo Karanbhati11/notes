@@ -1,296 +1,180 @@
 import React, { useState, useEffect } from "react";
-import {
-  Box,
-  Paper,
-  IconButton,
-  Typography,
-  Tooltip,
-  Fade,
-  TextareaAutosize,
-  Snackbar,
-  Alert,
-} from "@mui/material";
-import {
-  ContentCopy as CopyIcon,
-  Delete as ClearIcon,
-  Save as SaveIcon,
-  Info as InfoIcon,
-} from "@mui/icons-material";
 
-const themeConfig = {
-  light: {
-    primary: {
-      main: "#2563eb",
-      light: "#3b82f6",
-      dark: "#1d4ed8",
-    },
-    background: {
-      default: "#ffffff",
-      paper: "#f8fafc",
-      textarea: "#ffffff",
-    },
-    text: {
-      primary: "#1e293b",
-      secondary: "#64748b",
-      placeholder: "#94a3b8",
-    },
-    border: "#e2e8f0",
-    hover: "rgba(37, 99, 235, 0.1)",
-    shadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-  },
-  dark: {
-    primary: {
-      main: "#3b82f6",
-      light: "#60a5fa",
-      dark: "#2563eb",
-    },
-    background: {
-      default: "#0f172a",
-      paper: "#1e293b",
-      textarea: "#1e293b",
-    },
-    text: {
-      primary: "#f8fafc",
-      secondary: "#cbd5e1",
-      placeholder: "#94a3b8",
-    },
-    border: "#334155",
-    hover: "rgba(59, 130, 246, 0.2)",
-    shadow: "0 4px 6px -1px rgba(0, 0, 0, 0.3)",
-  },
-};
+const CopyIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </svg>
+);
 
-const SessionNote = ({ isDarkMode }) => {
+const ClearIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M9 6V4h6v2" />
+  </svg>
+);
+
+const SaveIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" />
+  </svg>
+);
+
+const InfoIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+  </svg>
+);
+
+const SessionNote = () => {
   const [sessionNote, setSessionNote] = useState("");
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
   const [lastSaved, setLastSaved] = useState(null);
-  const theme = isDarkMode ? themeConfig.dark : themeConfig.light;
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    const savedSessionNote = sessionStorage.getItem("sessionNote");
-    if (savedSessionNote) {
-      setSessionNote(savedSessionNote);
-      setLastSaved(new Date(sessionStorage.getItem("lastSaved") || Date.now()));
+    const saved = sessionStorage.getItem("sessionNote");
+    if (saved) {
+      setSessionNote(saved);
+      const ts = sessionStorage.getItem("lastSaved");
+      if (ts) setLastSaved(new Date(ts));
     }
   }, []);
 
-  const handleCopyNote = () => {
-    navigator.clipboard.writeText(sessionNote);
-    showSnackbar("Note copied to clipboard!", "success");
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
   };
 
-  const handleClearNote = () => {
-    if (sessionNote.trim() !== "") {
-      if (window.confirm("Are you sure you want to clear this note?")) {
-        setSessionNote("");
-        sessionStorage.removeItem("sessionNote");
-        sessionStorage.removeItem("lastSaved");
-        setLastSaved(null);
-        showSnackbar("Note cleared", "info");
-      }
-    }
-  };
-
-  const handleNoteChange = (e) => {
-    const newNote = e.target.value;
-    setSessionNote(newNote);
-    sessionStorage.setItem("sessionNote", newNote);
+  const handleChange = (e) => {
+    const val = e.target.value;
+    setSessionNote(val);
+    sessionStorage.setItem("sessionNote", val);
     const now = new Date();
     sessionStorage.setItem("lastSaved", now.toISOString());
     setLastSaved(now);
   };
 
-  const showSnackbar = (message, severity) => {
-    setSnackbar({ open: true, message, severity });
-  };
-
-  const handleSaveNote = () => {
+  const handleSave = () => {
     sessionStorage.setItem("sessionNote", sessionNote);
     const now = new Date();
     sessionStorage.setItem("lastSaved", now.toISOString());
     setLastSaved(now);
-    showSnackbar("Note saved successfully!", "success");
+    showToast("Saved!");
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(sessionNote);
+    showToast("Copied to clipboard!");
+  };
+
+  const handleClear = () => {
+    if (!sessionNote.trim()) return;
+    if (window.confirm("Clear this session note?")) {
+      setSessionNote("");
+      sessionStorage.removeItem("sessionNote");
+      sessionStorage.removeItem("lastSaved");
+      setLastSaved(null);
+      showToast("Cleared.");
+    }
   };
 
   return (
-    <Fade in timeout={500}>
-      <Box
-        sx={{
-          mt: 4,
-          height: "calc(100vh - 180px)", // Adjust based on your layout
-          display: "flex",
-          flexDirection: "column",
-        }}
+    <div className="max-w-5xl mx-auto px-6 py-8">
+      {/* Blackboard panel */}
+      <div
+        className="bg-black border border-[#2a2a2a] rounded-sm shadow-board flex flex-col overflow-hidden"
+        style={{ minHeight: "calc(100vh - 200px)" }}
       >
-        <Paper
-          elevation={isDarkMode ? 2 : 1}
-          sx={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            backgroundColor: theme.background.paper,
-            borderRadius: 2,
-            overflow: "hidden",
-            border: `1px solid ${theme.border}`,
-            transition: "all 0.3s ease",
-          }}
-        >
-          {/* Header */}
-          <Box
-            sx={{
-              p: 2,
-              borderBottom: `1px solid ${theme.border}`,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              backgroundColor: theme.background.paper,
+        {/* Board header */}
+        <div className="bg-[#161616] px-8 py-5 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-4">
+            {/* Star */}
+            <svg width="32" height="32" viewBox="0 0 28 28" fill="none">
+              <path d="M14 2L17.09 9.26L25 10.27L19.5 15.64L20.91 23.5L14 19.77L7.09 23.5L8.5 15.64L3 10.27L10.91 9.26L14 2Z" fill="#CCFF90" />
+            </svg>
+            <h2 className="text-white font-bold text-2xl font-inter tracking-tight">
+              Session Note
+            </h2>
+            <span
+              className="flex items-center gap-1 text-[#707070] text-xs font-inter"
+              title="This note is stored only for the current browser session and will be lost when you close the tab."
+            >
+              <InfoIcon />
+              Session only
+            </span>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleSave}
+              title="Save"
+              className="p-2 rounded hover:bg-[#2a2a2a] text-[#707070] hover:text-[#CCFF90] transition-colors"
+              aria-label="Save note"
+            >
+              <SaveIcon />
+            </button>
+            <button
+              onClick={handleCopy}
+              title="Copy"
+              className="p-2 rounded hover:bg-[#2a2a2a] text-[#707070] hover:text-[#CFCFCF] transition-colors"
+              aria-label="Copy note"
+            >
+              <CopyIcon />
+            </button>
+            <button
+              onClick={handleClear}
+              title="Clear"
+              className="p-2 rounded hover:bg-[#2a2a2a] text-[#707070] hover:text-[#FF8A80] transition-colors"
+              aria-label="Clear note"
+            >
+              <ClearIcon />
+            </button>
+          </div>
+        </div>
+
+        {/* Chalk rule lines — decorative */}
+        <div className="px-8 pt-6 shrink-0">
+          <div className="border-t border-dashed border-[#2a2a2a]" />
+        </div>
+
+        {/* Writing area */}
+        <div className="flex-1 px-8 py-6 relative">
+          <textarea
+            aria-label="Session note content"
+            placeholder="Write your temporary notes here — no saving required..."
+            value={sessionNote}
+            onChange={handleChange}
+            className="chalk-textarea w-full h-full min-h-[400px] text-base leading-8 font-inter"
+            style={{
+              /* Subtle ruled-line feel */
+              backgroundImage:
+                "repeating-linear-gradient(transparent, transparent 31px, #1a1a1a 31px, #1a1a1a 32px)",
+              backgroundAttachment: "local",
             }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography
-                variant="h6"
-                sx={{ color: theme.text.primary, fontWeight: 600 }}
-              >
-                Session Note
-              </Typography>
-              <Tooltip title="This note will persist only for your current session">
-                <InfoIcon
-                  sx={{
-                    color: theme.text.secondary,
-                    fontSize: "1rem",
-                    cursor: "help",
-                  }}
-                />
-              </Tooltip>
-            </Box>
+          />
+        </div>
 
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <Tooltip title="Save Note">
-                <IconButton
-                  onClick={handleSaveNote}
-                  sx={{
-                    color: theme.primary.main,
-                    "&:hover": { backgroundColor: theme.hover },
-                  }}
-                >
-                  <SaveIcon />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Copy Note">
-                <IconButton
-                  onClick={handleCopyNote}
-                  sx={{
-                    color: theme.primary.main,
-                    "&:hover": { backgroundColor: theme.hover },
-                  }}
-                >
-                  <CopyIcon />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Clear Note">
-                <IconButton
-                  onClick={handleClearNote}
-                  sx={{
-                    color: "#ef4444",
-                    "&:hover": { backgroundColor: "rgba(239, 68, 68, 0.1)" },
-                  }}
-                >
-                  <ClearIcon />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          </Box>
+        {/* Footer */}
+        <div className="bg-[#161616] border-t border-[#2a2a2a] px-8 py-3 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2 text-xs text-[#3a3a3a] font-inter">
+            <span>{sessionNote.length} characters</span>
+            <span>·</span>
+            <span>{sessionNote.trim().split(/\s+/).filter(Boolean).length} words</span>
+          </div>
+          {lastSaved && (
+            <span className="text-xs text-[#3a3a3a] font-inter">
+              Last saved {lastSaved.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+      </div>
 
-          {/* Textarea Container */}
-          <Box
-            sx={{
-              flex: 1,
-              position: "relative",
-              backgroundColor: theme.background.textarea,
-              overflow: "hidden",
-            }}
-          >
-            <TextareaAutosize
-              aria-label="session note"
-              placeholder="Write your temporary note here..."
-              value={sessionNote}
-              onChange={handleNoteChange}
-              style={{
-                width: "100%",
-                height: "100%",
-                position: "absolute",
-                top: 0,
-                left: 0,
-                padding: "16px",
-                backgroundColor: "transparent",
-                color: theme.text.primary,
-                fontSize: "16px",
-                lineHeight: "1.5",
-                border: "none",
-                outline: "none",
-                resize: "none",
-                fontFamily: "inherit",
-                overflowY: "auto",
-                "&::-webkit-scrollbar": {
-                  width: "8px",
-                },
-                "&::-webkit-scrollbar-track": {
-                  background: theme.background.paper,
-                },
-                "&::-webkit-scrollbar-thumb": {
-                  background: theme.border,
-                  borderRadius: "4px",
-                },
-                "&::-webkit-scrollbar-thumb:hover": {
-                  background: theme.text.secondary,
-                },
-              }}
-            />
-          </Box>
-
-          {/* Footer */}
-          <Box
-            sx={{
-              p: 2,
-              borderTop: `1px solid ${theme.border}`,
-              display: "flex",
-              justifyContent: "flex-end",
-              alignItems: "center",
-              backgroundColor: theme.background.paper,
-            }}
-          >
-            {lastSaved && (
-              <Typography
-                variant="caption"
-                sx={{ color: theme.text.secondary }}
-              >
-                Last saved: {new Date(lastSaved).toLocaleTimeString()}
-              </Typography>
-            )}
-          </Box>
-        </Paper>
-
-        {/* Snackbar for notifications */}
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={3000}
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        >
-          <Alert
-            onClose={() => setSnackbar({ ...snackbar, open: false })}
-            severity={snackbar.severity}
-            sx={{ width: "100%" }}
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
-      </Box>
-    </Fade>
+      {/* Toast notification */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 bg-[#1e1e1e] border border-[#2a2a2a] text-[#CFCFCF] text-sm px-4 py-3 rounded-sm shadow-board font-inter z-50 animate-pulse">
+          {toast}
+        </div>
+      )}
+    </div>
   );
 };
 

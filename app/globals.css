@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #000000;
+  color: #ffffff;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #161616;
+}
+::-webkit-scrollbar-thumb {
+  background: #707070;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #CFCFCF;
+}
+
+/* Textarea chalk-board style */
+.chalk-textarea {
+  background: transparent;
+  color: #CFCFCF;
+  font-family: 'Inter', sans-serif;
+  resize: none;
+  outline: none;
+  border: none;
+  caret-color: #CFCFCF;
+}
+.chalk-textarea::placeholder {
+  color: #707070;
+}
