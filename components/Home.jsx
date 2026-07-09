@@ -133,7 +133,7 @@ export default function Home({ flag, setFlag, setNotes, categories }) {
             {/* Color picker */}
             <div>
               <label className="block text-[#707070] text-xs uppercase tracking-widest mb-3 font-inter">Note Color</label>
-              <div className="flex gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 {NOTE_COLORS.map((c) => (
                   <button
                     key={c.value}
@@ -149,6 +149,37 @@ export default function Home({ flag, setFlag, setNotes, categories }) {
                     aria-label={`Select ${c.label} color`}
                   />
                 ))}
+
+                {/* Custom color — rainbow wheel, fills with chosen color once picked */}
+                <label
+                  title="Custom color"
+                  className={`relative w-8 h-8 rounded-full cursor-pointer transition-all duration-200 flex-shrink-0 hover:scale-105 ${
+                    !NOTE_COLORS.find((c) => c.value === selectedColor)
+                      ? "ring-2 ring-white ring-offset-2 ring-offset-black scale-110"
+                      : ""
+                  }`}
+                  aria-label="Pick custom color"
+                >
+                  {/* Visual circle — perfectly round */}
+                  <span
+                    className="absolute inset-0 rounded-full block"
+                    style={{
+                      background: !NOTE_COLORS.find((c) => c.value === selectedColor)
+                        ? selectedColor
+                        : "conic-gradient(hsl(0,100%,60%), hsl(60,100%,60%), hsl(120,100%,60%), hsl(180,100%,60%), hsl(240,100%,60%), hsl(300,100%,60%), hsl(360,100%,60%))",
+                    }}
+                  />
+                  <input
+                    type="color"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-full"
+                    value={
+                      !NOTE_COLORS.find((c) => c.value === selectedColor)
+                        ? selectedColor
+                        : "#B388FF"
+                    }
+                    onChange={(e) => setSelectedColor(e.target.value)}
+                  />
+                </label>
               </div>
             </div>
 

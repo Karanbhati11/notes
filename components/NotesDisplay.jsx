@@ -21,7 +21,12 @@ const NOTE_COLORS_LIST = [
 ];
 
 const getColor = (note, index) => {
-  if (note.color && STICKY_COLORS[note.color]) return STICKY_COLORS[note.color];
+  if (note.color) {
+    // Preset name
+    if (STICKY_COLORS[note.color]) return STICKY_COLORS[note.color];
+    // Custom hex color — use it directly, pick black text for readability
+    if (note.color.startsWith("#")) return { bg: note.color, text: "#000000" };
+  }
   const keys = Object.keys(STICKY_COLORS).filter((k) => k !== "default");
   return STICKY_COLORS[keys[index % keys.length]];
 };
@@ -61,6 +66,18 @@ const TagIcon = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
     <line x1="7" y1="7" x2="7.01" y2="7" />
+  </svg>
+);
+const ExpandIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" />
+    <line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" />
+  </svg>
+);
+const CollapseIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" />
+    <line x1="10" y1="14" x2="3" y2="21" /><line x1="21" y1="3" x2="14" y2="10" />
   </svg>
 );
 
@@ -125,6 +142,7 @@ export default function NotesDisplay({ notes, setNotes, categories, activeFilter
   const [needsPassword, setNeedsPassword] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Apply category filter — use original index for operations
   const filteredNotes = notes
@@ -155,6 +173,7 @@ export default function NotesDisplay({ notes, setNotes, categories, activeFilter
     setDecryptedContent("");
     setNeedsPassword(false);
     setError("");
+    setIsFullscreen(false);
   };
 
   const handleDecrypt = () => {
@@ -274,87 +293,162 @@ export default function NotesDisplay({ notes, setNotes, categories, activeFilter
           onClick={handleClose}
         >
           <div
-            className="w-full max-w-lg rounded-sm shadow-board overflow-hidden"
-            style={{ backgroundColor: activeColors.bg }}
+            className={`flex flex-col overflow-hidden shadow-board transition-all duration-200 ${
+              isFullscreen
+                ? "fixed inset-0 rounded-none"
+                : "w-full max-w-2xl rounded-sm max-h-[90vh]"
+            }`}
+            style={{ backgroundColor: "#ffffff" }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "rgba(0,0,0,0.1)" }}>
+            {/* ── Coloured header bar — theme colour lives here only ── */}
+            <div
+              className="flex items-center justify-between px-6 py-4 shrink-0"
+              style={{ backgroundColor: activeColors.bg, borderBottom: "1px solid rgba(0,0,0,0.12)" }}
+            >
               <div className="flex items-center gap-2 min-w-0">
-                <h2 className="font-bold text-lg font-inter text-black truncate">{activeNote.title || "Untitled"}</h2>
-                {activeNote.isEncrypted && <span className="text-black/50 shrink-0"><LockIcon /></span>}
+                <h2 className="font-bold text-lg font-inter text-black truncate">
+                  {activeNote.title || "Untitled"}
+                </h2>
+                {activeNote.isEncrypted && (
+                  <span className="text-black/50 shrink-0"><LockIcon /></span>
+                )}
               </div>
+
               <div className="flex items-center gap-1 shrink-0">
                 {!needsPassword && (
-                  <button onClick={handleCopy} className="p-1.5 rounded hover:bg-black/10 transition-colors text-black/60 hover:text-black" title={copied ? "Copied!" : "Copy"} aria-label="Copy">
+                  <button
+                    onClick={handleCopy}
+                    className="p-1.5 rounded hover:bg-black/10 transition-colors text-black/60 hover:text-black"
+                    title={copied ? "Copied!" : "Copy"}
+                    aria-label="Copy"
+                  >
                     <CopyIcon />
                   </button>
                 )}
-                <button onClick={handleClose} className="p-1.5 rounded hover:bg-black/10 transition-colors text-black/60 hover:text-black" aria-label="Close">
+                <button
+                  onClick={() => setIsFullscreen((f) => !f)}
+                  className="p-1.5 rounded hover:bg-black/10 transition-colors text-black/60 hover:text-black"
+                  title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                  aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                >
+                  {isFullscreen ? <CollapseIcon /> : <ExpandIcon />}
+                </button>
+                <button
+                  onClick={handleClose}
+                  className="p-1.5 rounded hover:bg-black/10 transition-colors text-black/60 hover:text-black"
+                  aria-label="Close"
+                >
                   <CloseIcon />
                 </button>
               </div>
             </div>
 
-            {/* Modal body */}
-            <div className="p-6 space-y-4">
-              {error && <div className="bg-black/10 text-black text-sm px-3 py-2 rounded font-inter">{error}</div>}
+            {/* ── White content area — always clean regardless of colour ── */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-white">
+              {error && (
+                <div className="bg-red-50 text-red-600 text-sm px-3 py-2 rounded font-inter border border-red-100">
+                  {error}
+                </div>
+              )}
 
               {needsPassword ? (
                 <div className="space-y-3">
-                  <p className="text-black/70 text-sm font-inter">Enter the password to unlock this note.</p>
+                  <p className="text-gray-600 text-sm font-inter">
+                    Enter the password to unlock this note.
+                  </p>
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleDecrypt()}
                     placeholder="Password..."
-                    className="w-full bg-black/10 border border-black/20 rounded px-3 py-2 text-black placeholder-black/40 outline-none focus:border-black/40 text-sm font-inter"
+                    className="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-gray-900 placeholder-gray-400 outline-none focus:border-gray-400 text-sm font-inter"
                     autoFocus
                   />
-                  <button onClick={handleDecrypt} className="w-full bg-black/80 hover:bg-black text-white font-medium py-2 rounded text-sm font-inter flex items-center justify-center gap-2 transition-colors">
+                  <button
+                    onClick={handleDecrypt}
+                    className="w-full bg-gray-900 hover:bg-black text-white font-medium py-2 rounded text-sm font-inter flex items-center justify-center gap-2 transition-colors"
+                  >
                     <UnlockIcon /> Unlock Note
                   </button>
                 </div>
               ) : (
                 <>
-                  {/* Content */}
+                  {/* Content textarea — grows to fill fullscreen */}
                   <textarea
                     value={decryptedContent}
                     onChange={(e) => setDecryptedContent(e.target.value)}
-                    rows={7}
-                    className="w-full bg-black/10 border border-black/20 rounded px-3 py-2 text-black outline-none focus:border-black/40 text-sm font-inter resize-none leading-relaxed"
+                    placeholder="Note content..."
+                    className={`w-full bg-gray-50 border border-gray-200 rounded px-4 py-3 text-gray-900 outline-none focus:border-gray-400 text-base font-inter resize-none leading-relaxed transition-all ${
+                      isFullscreen ? "min-h-[calc(100vh-280px)]" : "min-h-[200px]"
+                    }`}
                   />
 
-                  {/* Color */}
+                  {/* Color picker row */}
                   <div className="flex items-center gap-2">
-                    <span className="text-black/50 text-xs font-inter uppercase tracking-widest shrink-0">Color:</span>
-                    <div className="flex gap-1.5">
+                    <span className="text-gray-400 text-xs font-inter uppercase tracking-widest shrink-0">Color:</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       {NOTE_COLORS_LIST.map((c) => (
                         <button
                           key={c.value}
                           type="button"
                           onClick={() => setDecryptedColor(c.value)}
-                          className={`w-5 h-5 rounded-full transition-all ${decryptedColor === c.value ? "ring-2 ring-black ring-offset-1" : "hover:scale-110"}`}
+                          className={`w-5 h-5 rounded-full transition-all border-2 ${
+                            decryptedColor === c.value
+                              ? "border-gray-800 scale-110"
+                              : "border-transparent hover:scale-110"
+                          }`}
                           style={{ backgroundColor: c.bg }}
                           aria-label={`Set color to ${c.value}`}
                         />
                       ))}
+                      {/* Custom color — rainbow wheel, fills with chosen color once picked */}
+                      <label
+                        title="Custom color"
+                        className={`relative w-5 h-5 rounded-full cursor-pointer transition-all flex-shrink-0 hover:scale-110 ${
+                          !NOTE_COLORS_LIST.find((c) => c.value === decryptedColor)
+                            ? "ring-2 ring-gray-800 ring-offset-1 scale-110"
+                            : ""
+                        }`}
+                        aria-label="Pick custom color"
+                      >
+                        <span
+                          className="absolute inset-0 rounded-full block"
+                          style={{
+                            background: !NOTE_COLORS_LIST.find((c) => c.value === decryptedColor)
+                              ? decryptedColor
+                              : "conic-gradient(hsl(0,100%,60%), hsl(60,100%,60%), hsl(120,100%,60%), hsl(180,100%,60%), hsl(240,100%,60%), hsl(300,100%,60%), hsl(360,100%,60%))",
+                          }}
+                        />
+                        <input
+                          type="color"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-full"
+                          value={
+                            !NOTE_COLORS_LIST.find((c) => c.value === decryptedColor)
+                              ? decryptedColor
+                              : "#B388FF"
+                          }
+                          onChange={(e) => setDecryptedColor(e.target.value)}
+                        />
+                      </label>
                     </div>
                   </div>
 
-                  {/* Category */}
+                  {/* Category row */}
                   {categories.length > 0 && (
                     <div className="flex items-start gap-2">
-                      <span className="text-black/50 text-xs font-inter uppercase tracking-widest shrink-0 pt-1.5">Category:</span>
+                      <span className="text-gray-400 text-xs font-inter uppercase tracking-widest shrink-0 pt-1.5">
+                        Category:
+                      </span>
                       <div className="flex flex-wrap gap-1.5">
                         <button
                           type="button"
                           onClick={() => setDecryptedCategory("")}
-                          className={`px-2.5 py-1 rounded-full text-xs font-medium font-inter transition-all ${
+                          className={`px-2.5 py-1 rounded-full text-xs font-medium font-inter transition-all border ${
                             decryptedCategory === ""
-                              ? "bg-black/30 text-black"
-                              : "bg-black/10 text-black/60 hover:bg-black/20"
+                              ? "bg-gray-900 text-white border-gray-900"
+                              : "bg-gray-100 text-gray-600 border-transparent hover:bg-gray-200"
                           }`}
                         >
                           None
@@ -364,10 +458,10 @@ export default function NotesDisplay({ notes, setNotes, categories, activeFilter
                             key={cat.id}
                             type="button"
                             onClick={() => setDecryptedCategory(cat.id)}
-                            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium font-inter transition-all ${
+                            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium font-inter transition-all border ${
                               decryptedCategory === cat.id
-                                ? "bg-black/30 text-black"
-                                : "bg-black/10 text-black/60 hover:bg-black/20"
+                                ? "bg-gray-900 text-white border-gray-900"
+                                : "bg-gray-100 text-gray-600 border-transparent hover:bg-gray-200"
                             }`}
                           >
                             <TagIcon />
@@ -378,12 +472,18 @@ export default function NotesDisplay({ notes, setNotes, categories, activeFilter
                     </div>
                   )}
 
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-2">
-                    <button onClick={handleClose} className="flex-1 bg-black/10 hover:bg-black/20 text-black font-medium py-2 rounded text-sm font-inter transition-colors">
+                  {/* Action buttons */}
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={handleClose}
+                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded text-sm font-inter transition-colors"
+                    >
                       Cancel
                     </button>
-                    <button onClick={handleSave} className="flex-1 bg-black/80 hover:bg-black text-white font-medium py-2 rounded text-sm font-inter flex items-center justify-center gap-2 transition-colors">
+                    <button
+                      onClick={handleSave}
+                      className="flex-1 bg-gray-900 hover:bg-black text-white font-medium py-2.5 rounded text-sm font-inter flex items-center justify-center gap-2 transition-colors"
+                    >
                       <SaveIcon /> Save
                     </button>
                   </div>
