@@ -19,22 +19,9 @@ export default function NotesApp() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [showSessionNote, setShowSessionNote] = useState(false);
   const [flag, setFlag] = useState(false);
-  const [verifiedToast, setVerifiedToast] = useState(""); // "success" | "invalid" | ""
   const [syncStatus, setSyncStatus] = useState("");
 
-  const isVerified = authState?.emailVerified === true;
   const isLoggedIn = authState && authState !== "checking" && authState !== false && authState !== "guest";
-
-  // ── Parse ?verified= query param immediately (before any fetch) ──────────
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const v = params.get("verified");
-    if (v) {
-      setVerifiedToast(v);
-      window.history.replaceState({}, "", "/");
-      setTimeout(() => setVerifiedToast(""), 8000);
-    }
-  }, []);
 
   // ── Check existing session ───────────────────────────────────────────────
   useEffect(() => {
@@ -58,7 +45,7 @@ export default function NotesApp() {
   useEffect(() => {
     if (authState === "checking") return;
 
-    if (isVerified) {
+    if (isLoggedIn) {
       Promise.all([
         fetch("/api/notes").then((r) => r.json()),
         fetch("/api/categories").then((r) => r.json()),
@@ -91,10 +78,10 @@ export default function NotesApp() {
     localStorage.setItem("categories", JSON.stringify(categories));
   }, [categories, authState]);
 
-  // ── Cloud sync for verified users ────────────────────────────────────────
+  // ── Cloud sync for logged-in users ────────────────────────────────────────
   const syncToCloud = useCallback(
     async (newNotes, newCats) => {
-      if (!isVerified) return;
+      if (!isLoggedIn) return;
       setSyncStatus("syncing");
       try {
         await Promise.all([
@@ -116,7 +103,7 @@ export default function NotesApp() {
         setTimeout(() => setSyncStatus(""), 3000);
       }
     },
-    [isVerified]
+    [isLoggedIn]
   );
 
   const updateNotes = useCallback(
@@ -189,26 +176,11 @@ export default function NotesApp() {
     input.click();
   };
 
-  // ── Toast (shown on all screens) ─────────────────────────────────────────
-  const Toast = () => {
-    if (!verifiedToast) return null;
-    return (
-      <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] text-black text-sm font-medium font-inter px-5 py-3 rounded-sm shadow-lg ${
-        verifiedToast === "success" ? "bg-[#CCFF90]" : "bg-[#FF8A80]"
-      }`}>
-        {verifiedToast === "success"
-          ? "✓ Email verified! You can now sign in."
-          : "✗ Verification link is invalid or expired."}
-      </div>
-    );
-  };
-
   // ── Show AuthGate while checking OR when no session ──────────────────────
   // This avoids the black spinner — user sees login form immediately
   if (authState === "checking" || authState === false) {
     return (
       <>
-        <Toast />
         <AuthGate
           onAuth={handleAuth}
           sessionChecking={authState === "checking"}
@@ -220,7 +192,6 @@ export default function NotesApp() {
   // ── Main app ─────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-black text-white">
-      <Toast />
 
       {syncStatus && (
         <div className={`fixed bottom-4 right-4 z-50 text-xs font-inter px-3 py-2 rounded-sm border ${
@@ -241,15 +212,6 @@ export default function NotesApp() {
         user={authState}
         onLogout={handleLogout}
       />
-
-      {/* Unverified banner */}
-      {isLoggedIn && !isVerified && (
-        <div className="bg-[#FFFF8D]/10 border-b border-[#FFFF8D]/20 px-4 py-2.5 text-center">
-          <p className="text-[#FFFF8D] text-xs font-inter">
-            Your email isn&apos;t verified — notes are saved locally only. Check your inbox.
-          </p>
-        </div>
-      )}
 
       {/* Guest banner */}
       {authState === "guest" && (

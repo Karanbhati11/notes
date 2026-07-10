@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
 import { connectDB } from "@/lib/mongoose";
 import { User } from "@/lib/models/User";
-import { sendVerificationEmail } from "@/lib/mail";
+import { signToken, setAuthCookie } from "@/lib/auth";
 
 export async function POST(req) {
   try {
@@ -25,16 +24,20 @@ export async function POST(req) {
       return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 });
 
     const passwordHash = await bcrypt.hash(password, 12);
-    const verifyToken = crypto.randomBytes(32).toString("hex");
-    const verifyTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
 
-    await User.create({ email, passwordHash, verifyToken, verifyTokenExpiry });
+    const user = await User.create({ email, passwordHash });
 
-    await sendVerificationEmail(email, verifyToken);
-
-    return NextResponse.json({
-      message: "Account created. Check your email to verify your account.",
+    const token = signToken({
+      userId: user._id.toString(),
+      email: user.email,
     });
+
+    const res = NextResponse.json({
+      user: { email: user.email },
+    });
+
+    setAuthCookie(res, token);
+    return res;
   } catch (err) {
     console.error("Register error:", err);
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });

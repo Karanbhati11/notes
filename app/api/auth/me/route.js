@@ -28,12 +28,12 @@ export async function GET() {
     const { User } = await import("@/lib/models/User");
 
     await connectDB();
-    const user = await User.findById(session.userId).select("email emailVerified").lean();
+    const user = await User.findById(session.userId).select("email").lean();
 
     if (!user) return NextResponse.json({ user: null });
 
     return NextResponse.json({
-      user: { email: user.email, emailVerified: user.emailVerified },
+      user: { email: user.email },
     });
   } catch (err) {
     console.error("[/api/auth/me]", err);

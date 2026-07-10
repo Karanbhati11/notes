@@ -1,21 +1,17 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { connectDB } from "@/lib/mongoose";
-import { User } from "@/lib/models/User";
 import { Category } from "@/lib/models/Category";
 
-async function getVerifiedUser() {
+async function getUserId() {
   const session = await getSession();
   if (!session) return null;
-  await connectDB();
-  const user = await User.findById(session.userId).select("emailVerified");
-  if (!user?.emailVerified) return null;
   return session.userId;
 }
 
 // GET — fetch all categories
 export async function GET() {
-  const userId = await getVerifiedUser();
+  const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const cats = await Category.find({ userId }).lean();
@@ -28,7 +24,7 @@ export async function GET() {
 
 // POST — full replace sync
 export async function POST(req) {
-  const userId = await getVerifiedUser();
+  const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { categories } = await req.json();

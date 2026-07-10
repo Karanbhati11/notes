@@ -1,21 +1,17 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { connectDB } from "@/lib/mongoose";
-import { User } from "@/lib/models/User";
 import { Note } from "@/lib/models/Note";
 
-async function getVerifiedUser() {
+async function getUserId() {
   const session = await getSession();
   if (!session) return null;
-  await connectDB();
-  const user = await User.findById(session.userId).select("emailVerified");
-  if (!user?.emailVerified) return null;
   return session.userId;
 }
 
-// GET — fetch all notes for the verified user
+// GET — fetch all notes for the logged-in user
 export async function GET() {
-  const userId = await getVerifiedUser();
+  const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const notes = await Note.find({ userId }).lean();
@@ -27,9 +23,9 @@ export async function GET() {
   return NextResponse.json({ notes: clean });
 }
 
-// POST — replace all notes for the verified user (full sync)
+// POST — replace all notes for the logged-in user (full sync)
 export async function POST(req) {
-  const userId = await getVerifiedUser();
+  const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { notes } = await req.json();

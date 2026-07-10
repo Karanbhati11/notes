@@ -24,13 +24,11 @@ export async function POST(req) {
     const token = signToken({
       userId: user._id.toString(),
       email: user.email,
-      emailVerified: user.emailVerified,
     });
 
     const res = NextResponse.json({
       user: {
         email: user.email,
-        emailVerified: user.emailVerified,
       },
     });
 

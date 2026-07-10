@@ -24,7 +24,7 @@ const CloudIcon = () => (
 );
 
 export default function SessionNote({ user }) {
-  const isVerified = user?.emailVerified === true;
+  const isLoggedIn = !!user;
 
   const [content, setContent] = useState("");
   const [lastSaved, setLastSaved] = useState(null);
@@ -38,7 +38,7 @@ export default function SessionNote({ user }) {
     if (initialLoadDone.current) return;
     initialLoadDone.current = true;
 
-    if (isVerified) {
+    if (isLoggedIn) {
       // Load from DB, fall back to sessionStorage
       setLoadingCloud(true);
       fetch("/api/session-note")
@@ -59,7 +59,7 @@ export default function SessionNote({ user }) {
         })
         .finally(() => setLoadingCloud(false));
     } else {
-      // Guest / unverified — use sessionStorage only
+      // Guest — use sessionStorage only
       const saved = sessionStorage.getItem("sessionNote");
       if (saved) setContent(saved);
       const ts = sessionStorage.getItem("sessionNoteTs");
@@ -84,7 +84,7 @@ export default function SessionNote({ user }) {
     sessionStorage.setItem("sessionNoteTs", now.toISOString());
     setLastSaved(now);
 
-    if (isVerified) {
+    if (isLoggedIn) {
       setSaving(true);
       try {
         await fetch("/api/session-note", {
@@ -119,7 +119,7 @@ export default function SessionNote({ user }) {
     sessionStorage.removeItem("sessionNote");
     sessionStorage.removeItem("sessionNoteTs");
 
-    if (isVerified) {
+    if (isLoggedIn) {
       fetch("/api/session-note", { method: "DELETE" }).catch(() => {});
     }
     showToast("Cleared.");
@@ -144,13 +144,13 @@ export default function SessionNote({ user }) {
             </svg>
             <h2 className="text-white font-bold text-2xl font-inter tracking-tight">Session Note</h2>
             {/* Storage indicator */}
-            {isVerified ? (
+            {isLoggedIn ? (
               <span className="flex items-center gap-1.5 text-[#CCFF90] text-xs font-inter">
                 <CloudIcon /> Synced across devices
               </span>
             ) : (
               <span className="text-[#707070] text-xs font-inter">
-                {user ? "Verify email to enable cloud sync" : "This session only"}
+                This session only
               </span>
             )}
           </div>
@@ -159,7 +159,7 @@ export default function SessionNote({ user }) {
             <button
               onClick={handleSave}
               disabled={saving || loadingCloud}
-              title={isVerified ? "Save to cloud" : "Save"}
+              title={isLoggedIn ? "Save to cloud" : "Save"}
               className="p-2 rounded hover:bg-[#2a2a2a] text-[#707070] hover:text-[#CCFF90] disabled:opacity-40 transition-colors"
               aria-label="Save note"
             >
@@ -198,7 +198,7 @@ export default function SessionNote({ user }) {
           ) : (
             <textarea
               aria-label="Session note content"
-              placeholder={isVerified
+              placeholder={isLoggedIn
                 ? "Write here — click Save to sync across all your devices…"
                 : "Write your temporary notes here…"}
               value={content}

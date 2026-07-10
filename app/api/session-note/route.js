@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-async function getVerifiedUserId() {
+async function getUserId() {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("mn_token")?.value;
@@ -9,13 +9,7 @@ async function getVerifiedUserId() {
 
     const jwt = (await import("jsonwebtoken")).default;
     const session = jwt.verify(token, process.env.JWT_SECRET);
-
-    const { connectDB } = await import("@/lib/mongoose");
-    const { User } = await import("@/lib/models/User");
-    await connectDB();
-
-    const user = await User.findById(session.userId).select("emailVerified").lean();
-    return user?.emailVerified ? session.userId : null;
+    return session.userId;
   } catch {
     return null;
   }
@@ -23,7 +17,7 @@ async function getVerifiedUserId() {
 
 // GET — fetch saved session note
 export async function GET() {
-  const userId = await getVerifiedUserId();
+  const userId = await getUserId();
   if (!userId) return NextResponse.json({ content: null });
 
   const { connectDB } = await import("@/lib/mongoose");
@@ -36,7 +30,7 @@ export async function GET() {
 
 // POST — save session note
 export async function POST(req) {
-  const userId = await getVerifiedUserId();
+  const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { content } = await req.json();
@@ -56,7 +50,7 @@ export async function POST(req) {
 
 // DELETE — clear session note
 export async function DELETE() {
-  const userId = await getVerifiedUserId();
+  const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { connectDB } = await import("@/lib/mongoose");

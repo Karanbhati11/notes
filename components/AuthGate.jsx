@@ -35,24 +35,7 @@ export default function AuthGate({ onAuth, sessionChecking = false }) {
 
       if (!res.ok) {
         setError(data.error ?? "Something went wrong.");
-      } else if (mode === "signup") {
-        // Auto-login after signup so user goes straight to the app
-        const loginRes = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
-        const loginData = await loginRes.json();
-        if (loginRes.ok) {
-          onAuth(loginData.user);
-        } else {
-          // Login failed for some reason — show success and let them sign in manually
-          setSuccess("Account created! Check your email to verify, then sign in.");
-          setEmail("");
-          setPassword("");
-        }
       } else {
-        // Login success — bubble up to parent
         onAuth(data.user);
       }
     } catch {
@@ -160,7 +143,7 @@ export default function AuthGate({ onAuth, sessionChecking = false }) {
           {/* Guest note */}
           <p className="text-[#3a3a3a] text-xs font-inter text-center pt-1">
             {mode === "signup"
-              ? "Unverified accounts use local storage only."
+              ? "Create an account to sync your notes across devices."
               : "Don't have an account? Switch to Sign Up above."}
           </p>
         </div>
