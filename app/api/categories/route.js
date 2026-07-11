@@ -16,7 +16,7 @@ export async function GET() {
 
   const cats = await Category.find({ userId }).lean();
   const clean = cats.map(({ _id, userId: _u, __v, ...rest }) => ({
-    _id: _id.toString(),
+    id: _id.toString(),
     ...rest,
   }));
   return NextResponse.json({ categories: clean });

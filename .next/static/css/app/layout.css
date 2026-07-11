@@ -935,6 +935,10 @@ video {
   --tw-bg-opacity: 1;
   background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
 }
+.bg-\[\#CCFF90\] {
+  --tw-bg-opacity: 1;
+  background-color: rgb(204 255 144 / var(--tw-bg-opacity, 1));
+}
 .p-1 {
   padding: 0.25rem;
 }

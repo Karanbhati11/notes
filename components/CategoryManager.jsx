@@ -21,7 +21,19 @@ const TagIcon = () => (
   </svg>
 );
 
-export default function CategoryManager({ categories, setCategories, activeFilter, setActiveFilter }) {
+const SortIcon = ({ direction }) => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    {direction === "asc" ? (
+      <><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></>
+    ) : direction === "desc" ? (
+      <><line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" /></>
+    ) : (
+      <><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></>
+    )}
+  </svg>
+);
+
+export default function CategoryManager({ categories, setCategories, activeFilter, setActiveFilter, dateSort, setDateSort }) {
   const [isOpen, setIsOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [error, setError] = useState("");
@@ -79,6 +91,20 @@ export default function CategoryManager({ categories, setCategories, activeFilte
             {cat.name}
           </button>
         ))}
+
+        {/* Date sort toggle */}
+        <button
+          onClick={() => setDateSort(dateSort === "none" ? "desc" : dateSort === "desc" ? "asc" : "none")}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium font-inter transition-all duration-200 ${
+            dateSort !== "none"
+              ? "bg-[#CCFF90] text-black"
+              : "bg-[#1e1e1e] text-[#707070] hover:text-[#CFCFCF] border border-[#2a2a2a]"
+          }`}
+          title={dateSort === "none" ? "Sort by date" : dateSort === "desc" ? "Newest first" : "Oldest first"}
+        >
+          <SortIcon direction={dateSort} />
+          {dateSort === "none" ? "Date" : dateSort === "desc" ? "Newest" : "Oldest"}
+        </button>
 
         {/* Manage categories toggle */}
         <button

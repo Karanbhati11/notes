@@ -133,7 +133,7 @@ const StickyCard = ({ note, index, onOpen, onDelete, categoryName }) => {
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function NotesDisplay({ notes, setNotes, categories, activeFilter }) {
+export default function NotesDisplay({ notes, setNotes, categories, activeFilter, dateSort }) {
   const [selectedNote, setSelectedNote] = useState(null);
   const [password, setPassword] = useState("");
   const [decryptedContent, setDecryptedContent] = useState("");
@@ -149,7 +149,13 @@ export default function NotesDisplay({ notes, setNotes, categories, activeFilter
     .map((note, originalIndex) => ({ note, originalIndex }))
     .filter(({ note }) =>
       activeFilter === "all" ? true : note.categoryId === activeFilter
-    );
+    )
+    .sort((a, b) => {
+      if (dateSort === "none") return 0;
+      const ta = new Date(a.note.createdAt || 0).getTime();
+      const tb = new Date(b.note.createdAt || 0).getTime();
+      return dateSort === "asc" ? ta - tb : tb - ta;
+    });
 
   const handleOpen = (originalIndex) => {
     const note = notes[originalIndex];

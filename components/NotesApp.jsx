@@ -17,6 +17,7 @@ export default function NotesApp() {
   const [notes, setNotes] = useState([]);
   const [categories, setCategories] = useState([]);
   const [activeFilter, setActiveFilter] = useState("all");
+  const [dateSort, setDateSort] = useState("none");
   const [showSessionNote, setShowSessionNote] = useState(false);
   const [flag, setFlag] = useState(false);
   const [syncStatus, setSyncStatus] = useState("");
@@ -239,12 +240,15 @@ export default function NotesApp() {
             setCategories={updateCategories}
             activeFilter={activeFilter}
             setActiveFilter={setActiveFilter}
+            dateSort={dateSort}
+            setDateSort={setDateSort}
           />
           <NotesDisplay
             notes={notes}
             setNotes={updateNotes}
             categories={categories}
             activeFilter={activeFilter}
+            dateSort={dateSort}
           />
         </>
       )}
