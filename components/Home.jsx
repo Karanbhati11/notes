@@ -35,7 +35,7 @@ const TagIcon = () => (
   </svg>
 );
 
-export default function Home({ flag, setFlag, setNotes, categories }) {
+export default function Home({ flag, setFlag, notes, setNotes, categories }) {
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
   const [isEncrypt, setIsEncrypt] = useState(false);
@@ -53,9 +53,8 @@ export default function Home({ flag, setFlag, setNotes, categories }) {
       finalNote = CryptoJS.AES.encrypt(note, notePassword).toString();
     }
 
-    const storedNotes = JSON.parse(localStorage.getItem("notes") || "[]");
     const updatedNotes = [
-      ...storedNotes,
+      ...notes,
       {
         title,
         content: finalNote,
@@ -66,7 +65,6 @@ export default function Home({ flag, setFlag, setNotes, categories }) {
       },
     ];
 
-    localStorage.setItem("notes", JSON.stringify(updatedNotes));
     setNotes(updatedNotes);
     setTitle("");
     setNote("");

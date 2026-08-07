@@ -14,10 +14,11 @@ export async function GET() {
   const userId = await getUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  await connectDB();
   const cats = await Category.find({ userId }).lean();
   const clean = cats.map(({ _id, userId: _u, __v, ...rest }) => ({
-    id: _id.toString(),
-    ...rest,
+    id: rest.id || rest.clientId || _id.toString(),
+    name: rest.name,
   }));
   return NextResponse.json({ categories: clean });
 }
@@ -30,9 +31,12 @@ export async function POST(req) {
   const { categories } = await req.json();
   if (!Array.isArray(categories)) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
+  await connectDB();
   await Category.deleteMany({ userId });
   if (categories.length > 0) {
-    await Category.insertMany(categories.map((c) => ({ ...c, userId })));
+    await Category.insertMany(
+      categories.map((c) => ({ name: c.name, id: c.id, clientId: c.id, userId }))
+    );
   }
 
   return NextResponse.json({ ok: true });

@@ -207,7 +207,6 @@ export default function NotesDisplay({ notes, setNotes, categories, activeFilter
       updated[selectedNote] = { ...base, content: decryptedContent };
     }
     setNotes(updated);
-    localStorage.setItem("notes", JSON.stringify(updated));
     handleClose();
   };
 
@@ -230,7 +229,6 @@ export default function NotesDisplay({ notes, setNotes, categories, activeFilter
     }
     const updated = notes.filter((_, i) => i !== originalIndex);
     setNotes(updated);
-    localStorage.setItem("notes", JSON.stringify(updated));
   };
 
   const activeNote = selectedNote !== null ? notes[selectedNote] : null;

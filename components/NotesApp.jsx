@@ -126,7 +126,23 @@ export default function NotesApp() {
   );
 
   // ── Auth ─────────────────────────────────────────────────────────────────
-  const handleAuth = (user) => setAuthState(user === null ? "guest" : user);
+  const handleAuth = (user) => {
+    const newState = user === null ? "guest" : user;
+    setAuthState(newState);
+
+    // If logged in, fetch data from server immediately
+    if (user) {
+      Promise.all([
+        fetch("/api/notes").then((r) => r.json()),
+        fetch("/api/categories").then((r) => r.json()),
+      ])
+        .then(([noteData, catData]) => {
+          setNotes(noteData.notes ?? []);
+          setCategories(catData.categories ?? []);
+        })
+        .catch(loadFromLocalStorage);
+    }
+  };
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -234,7 +250,7 @@ export default function NotesApp() {
         <SessionNote user={authState === "guest" ? null : authState} />
       ) : (
         <>
-          <Home flag={flag} setFlag={setFlag} setNotes={updateNotes} categories={categories} />
+          <Home flag={flag} setFlag={setFlag} notes={notes} setNotes={updateNotes} categories={categories} />
           <CategoryManager
             categories={categories}
             setCategories={updateCategories}
